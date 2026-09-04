@@ -1,0 +1,13 @@
+# Environment variables declared in this file are NOT automatically loaded by Prisma.
+# Please add `import "dotenv/config";` to your `prisma7.config.ts` file, or use the Prisma CLI with Bun
+# to load environment variables from .env files: https://pris.ly/prisma-config-env-vars.
+
+# Prisma supports the native connection string format for PostgreSQL, MySQL, SQLite, SQL Server, MongoDB and CockroachDB.
+# See the documentation for all the connection string options: https://pris.ly/d/connection-strings
+
+DATABASE_URL="mysql://root:12345678@localhost:3306/turismo"
+DATABASE_USER="root"
+DATABASE_PASSWORD="12345678"
+DATABASE_NAME="turismo"
+DATABASE_HOST="localhost"
+DATABASE_PORT=3306
