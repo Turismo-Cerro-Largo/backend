@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { userController } from "../controllers/userController.js";
+import { userController } from "../controllers/user.controller.js";
 
 const app = new Hono()
 

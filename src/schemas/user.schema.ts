@@ -4,3 +4,5 @@ export const CrearUsuarioSchema = z.object({
     username: z.string().min(6),
     email: z.string().email()
 })
+
+export type CrearUsuarioInput = z.infer<typeof CrearUsuarioSchema>

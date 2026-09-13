@@ -27,7 +27,7 @@ describe('creacion de usuarios', () => {
       body: JSON.stringify(payload)
     })
 
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(201)
     const data = await res.json()
     expect(data.msg).toHaveProperty('id')
     expect(data.msg.email).toBe(payload.email)
@@ -46,8 +46,8 @@ describe('creacion de usuarios', () => {
       body: JSON.stringify(payload)
     })
 
-    expect(res.status).toBe(403)
+    expect(res.status).toBe(409)
     const errorData = await res.json()
-    expect(errorData.msg).toBe('Usuario no creado')
+    expect(errorData.msg).toBe('El usuario ya existe')
   }, 15000)
 })
