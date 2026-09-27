@@ -166,14 +166,10 @@ model Categoria {
   nombre      String   @unique @db.VarChar(100)
   descripcion String?  @db.VarChar(255)
   lugares     Lugar[]
-  eventos     Evento[]
 
   @@map("categoria")
 }
 
-//
-// Cambios
-// + Se cambio a Recursos y se quito RecursoLugar
 model Lugar {
   id               Int         @id @default(autoincrement()) @map("id_lugar")
   nombre           String      @db.VarChar(150)
@@ -190,7 +186,7 @@ model Lugar {
 
   categoria Categoria @relation(fields: [idCategoria], references: [id], onDelete: Restrict, onUpdate: Cascade)
   localidad Localidad @relation(fields: [idLocalidad], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  recursos  Recurso[]
+  recursos  RecursoLugar[]
   resenas   Resena[]
   favoritos Favorito[]
 
@@ -201,32 +197,20 @@ model Lugar {
   @@map("lugar")
 }
 
-//
-// Cambios
-// Se unificaron 2 tablas de recurso en 1
-model Recurso {
-  id          Int         @id @default(autoincrement()) @map("id_recurso")
+model RecursoLugar {
+  id          Int         @id @default(autoincrement()) @map("id_recurso_lugar")
   tipo        TipoRecurso @default(IMAGEN)
   url         String      @db.VarChar(2048)
   descripcion String?     @db.VarChar(255)
   orden       Int         @default(0)
-  idLugar     Int?        @map("id_lugar")
-  idEvento    Int?        @map("id_evento")
-  idResena    Int?        @map("id_resena")
+  idLugar     Int         @map("id_lugar")
 
-  lugar  Lugar?  @relation(fields: [idLugar], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  evento Evento? @relation(fields: [idEvento], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  resena Resena? @relation(fields: [idResena], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lugar Lugar @relation(fields: [idLugar], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([idLugar])
-  @@index([idEvento])
-  @@index([idResena])
-  @@map("recurso")
+  @@map("recurso_lugar")
 }
 
-//
-// Cambios
-// + Ahora un resenia tiene recursos
 model Resena {
   id           Int          @id @default(autoincrement()) @map("id_resena")
   comentario   String?      @db.Text
@@ -236,9 +220,8 @@ model Resena {
   idUsuario    Int          @map("id_usuario")
   idLugar      Int          @map("id_lugar")
 
-  usuario  Usuario   @relation(fields: [idUsuario], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  lugar    Lugar     @relation(fields: [idLugar], references: [id], onDelete: Cascade, onUpdate: Cascade)
-  recursos Recurso[]
+  usuario Usuario @relation(fields: [idUsuario], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  lugar   Lugar   @relation(fields: [idLugar], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([idUsuario])
   @@index([idLugar])
@@ -260,11 +243,6 @@ model Favorito {
   @@map("favorito")
 }
 
-
-//
-// Cambios
-// + Se conecto directo a recursos
-// - se quito su tabla Evento RecursoEvento
 model Evento {
   id                 Int          @id @default(autoincrement()) @map("id_evento")
   titulo             String       @db.VarChar(180)
@@ -284,19 +262,30 @@ model Evento {
   fechaActualizacion DateTime     @updatedAt @map("fecha_actualizacion")
   idUsuarioCreador   Int          @map("id_usuario_creador")
   idLocalidad        Int          @map("id_localidad")
-  idCategoria        Int          @map("id_categoria")
 
   usuarioCreador Usuario   @relation(fields: [idUsuarioCreador], references: [id], onDelete: Restrict, onUpdate: Cascade)
   localidad      Localidad @relation(fields: [idLocalidad], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  categoria      Categoria @relation(fields: [idCategoria], references: [id], onDelete: Restrict, onUpdate: Cascade)
-  recursos       Recurso[]
+  recursos       RecursoEvento[]
 
   @@index([idUsuarioCreador])
   @@index([idLocalidad])
-  @@index([idCategoria])
   @@index([estado])
   @@index([fechaEvento])
   @@map("evento")
+}
+
+model RecursoEvento {
+  id          Int         @id @default(autoincrement()) @map("id_recurso_evento")
+  tipo        TipoRecurso @default(IMAGEN)
+  url         String      @db.VarChar(2048)
+  descripcion String?     @db.VarChar(255)
+  orden       Int         @default(0)
+  idEvento    Int         @map("id_evento")
+
+  evento Evento @relation(fields: [idEvento], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([idEvento])
+  @@map("recurso_evento")
 }
 
 model EmpresaTransporte {

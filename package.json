@@ -7,6 +7,7 @@
     "start": "node dist/index.js",
     "orm:migrate": "prisma migrate dev --name",
     "orm:generate": "prisma generate",
+    "orm:pereza":"prisma migrate reset --force && pnpm orm:generate",
     "orm:deploy": "prisma migrate deploy",
     "studio": "prisma studio",
     "test": "vitest"
