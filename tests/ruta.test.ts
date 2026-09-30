@@ -5,14 +5,31 @@ import { prisma } from '../src/configuracion/db.js'
 
 describe('creacion de usuarios', () => {
   const payload = {
-    username: 'testuser',
-    email: 'test@example.com'
+    username: 'wiska2',
+    email: 'test@example.com',
+    apellidos: 'Test',
+    cedula: '1234567890',
+    fechaNacimiento: '2000-01-01',
+    idRol: 0,
+    idLocalidad: 0
   }
   const headers = new Headers({ 'content-type': 'application/json' })
 
   beforeAll(async () => {
     await prisma.$connect()
     await prisma.usuario.deleteMany({})
+    const rol = await prisma.rol.upsert({
+      where: { nombre: 'USUARIO' },
+      create: { nombre: 'USUARIO' },
+      update: {}
+    })
+    const localidad = await prisma.localidad.upsert({
+      where: { nombre_departamento: { nombre: 'Melo', departamento: 'Cerro Largo' } },
+      create: { nombre: 'Melo', departamento: 'Cerro Largo' },
+      update: {}
+    })
+    payload.idRol = rol.id
+    payload.idLocalidad = localidad.id
   }, 15000)
 
   afterAll(async () => {

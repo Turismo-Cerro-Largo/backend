@@ -46,9 +46,15 @@ export const userController = {
 
             const usuario = await prisma.usuario.create({
                 data: {
-                    username: datos.data.username,
-                    email: datos.data.email
-                }
+                    nombres: datos.data.username,
+                    email: datos.data.email,
+                    apellidos: datos.data.apellidos,
+                    cedula: datos.data.cedula,
+                    fechaNacimiento: datos.data.fechaNacimiento,
+                    telefono: datos.data.telefono,
+                    rol: { connect: { id: datos.data.idRol } },
+                    localidad: { connect: { id: datos.data.idLocalidad } },
+                },
             });
 
             return c.json({ msg: usuario }, 200);
