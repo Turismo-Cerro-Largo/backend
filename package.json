@@ -7,14 +7,17 @@
     "start": "node dist/index.js",
     "orm:migrate": "prisma migrate dev --name",
     "orm:generate": "prisma generate",
-    "orm:pereza":"prisma migrate reset --force && pnpm orm:generate",
+    "orm:pereza": "prisma migrate reset --force && pnpm orm:generate",
     "orm:deploy": "prisma migrate deploy",
     "studio": "prisma studio",
-    "test": "vitest"
+    "test": "vitest run",
+    "format:middleware": "biome format --write ./src/middleware",
+    "format:app": "biome format --write ./src/app"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
     "@hono/oauth-providers": "^0.9.0",
+    "@node-rs/argon2": "^2.2.1",
     "@prisma/adapter-mariadb": "^7.10.0",
     "@prisma/client": "7.10.0",
     "dotenv": "^17.4.2",
@@ -22,6 +25,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@biomejs/biome": "2.5.15",
     "@types/node": "^26.4.1",
     "prisma": "7.10.0",
     "tsx": "^4.23.13",

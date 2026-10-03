@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { Configuracion } from './configuracion/configuracion.js'
+import { AppRouter } from './app/app-router.js';
 import 'dotenv/config'
-import { AppRouter } from './routes/AppRouter.js'
 
 const app = new Hono()
 

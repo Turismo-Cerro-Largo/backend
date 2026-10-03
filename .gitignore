@@ -33,3 +33,10 @@ dist
 pnpm-lock.yaml
 pnpm-workspace.yaml
 vitest.config.js
+
+
+# Archivos publicos
+privado
+publico
+static
+src/configuracion/generated
