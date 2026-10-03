@@ -47,9 +47,7 @@ const ArchivosOrg = createMiddleware<{
 
 	const frente = body.fotoCedulaFrente;
 	const dorso = body.fotoCedulaDorso;
-	console.log(Object.entries(body).map(([clave, valor]) => [clave, valor instanceof File ? "File" : typeof valor]));
-	console.log(c.req.header("content-type"));
-	
+
 	if (!(frente instanceof File) || !(dorso instanceof File)) {
 		throw new BadRequestError();
 	}

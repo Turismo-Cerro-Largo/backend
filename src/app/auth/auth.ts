@@ -9,11 +9,12 @@ import { prisma } from "../../configuracion/db.js";
 import { hash, verify } from "@node-rs/argon2";
 import { setSignedCookie } from "hono/cookie";
 import { ArchivosOrg } from "../../middleware/Archivos.js";
+import { bodyLimitado } from "../../middleware/Limit.js";
 
 const app = new Hono();
 
 // Login
-app.post("/login", async (c: Context) => {
+app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 	const body = await c.req.parseBody();
 
 	// Verificar el formulario
@@ -68,7 +69,7 @@ app.post("/login", async (c: Context) => {
 });
 
 // Registro del usuario
-app.post("/register", async (c: Context) => {
+app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	const body = await c.req.parseBody();
 
 	// Verificar el formulario
@@ -118,7 +119,7 @@ app.post("/register", async (c: Context) => {
 });
 
 // Registro del organizador
-app.post("/register-organizador", ArchivosOrg, async (c: Context) => {
+app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c: Context) => {
 	const body = await c.req.parseBody();
 
 	// Verificar el formulario

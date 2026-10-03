@@ -12,7 +12,8 @@
     "studio": "prisma studio",
     "test": "vitest run",
     "format:middleware": "biome format --write ./src/middleware",
-    "format:app": "biome format --write ./src/app"
+    "format:app": "biome format --write ./src/app",
+    "format:conf": "biome format --write ./src/configuracion"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
