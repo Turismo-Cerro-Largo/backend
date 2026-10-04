@@ -1,4 +1,4 @@
-import { Context, Hono } from "hono";
+import { Hono } from "hono";
 import { AuthRoute } from "./auth/auth.js";
 
 const app = new Hono();

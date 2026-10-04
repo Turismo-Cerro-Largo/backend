@@ -10,20 +10,18 @@ export const auth_usuario_register_scheem = z.object({
 	apellidos: z.string().min(1),
 	email: z.string().email(),
 	departamento: z.string().min(1),
-	localidad: z.string().min(1),
 	fecha_nacimiento: z.string().min(1),
-	telefono: z.string().min(1),
 	genero: z.enum(["masculino", "femenino", "otro"]),
-	cedula: z.string().length(8),
 	password: z.string().min(8),
 });
 
 export const auth_organizador_register_scheem = z.object({
-	email: z.string().email(),
-	password: z.string().min(8),
 	nombreOrganizacion: z.string().min(1),
 	rut: z.string().min(1),
+	departamento: z.string().min(1),
+	email: z.string().email(),
 	telefono: z.string().min(1),
+	password: z.string().min(8),
 	fotoCedulaFrente: z.any(),
 	fotoCedulaDorso: z.any(),
 });

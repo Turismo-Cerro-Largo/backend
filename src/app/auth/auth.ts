@@ -1,15 +1,16 @@
-import { Context, Hono } from "hono";
+import { hash, verify } from "@node-rs/argon2";
+import { type Context, Hono } from "hono";
+import { getSignedCookie, setSignedCookie } from "hono/cookie";
+import { BadRequestError, UnauthorizedError } from "../../configuracion/AppError.js";
+import { prisma } from "../../configuracion/db.js";
+import { ArchivosOrg } from "../../middleware/Archivos.js";
+import { Google } from "../../middleware/Google.js";
+import { bodyLimitado } from "../../middleware/Limit.js";
 import {
 	auth_organizador_register_scheem,
 	auth_usuario_login_scheem,
 	auth_usuario_register_scheem,
 } from "./auth.schema.js";
-import { BadRequestError } from "../../configuracion/AppError.js";
-import { prisma } from "../../configuracion/db.js";
-import { hash, verify } from "@node-rs/argon2";
-import { setSignedCookie } from "hono/cookie";
-import { ArchivosOrg } from "../../middleware/Archivos.js";
-import { bodyLimitado } from "../../middleware/Limit.js";
 
 const app = new Hono();
 
@@ -29,6 +30,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 		select: {
 			id: true,
 			passhash: true,
+			rol: true,
 		},
 	});
 
@@ -43,7 +45,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 
 	const cuenta = usuario ?? organizador;
 
-	if (!cuenta || !cuenta.passhash) {
+	if (!cuenta?.passhash) {
 		throw new BadRequestError();
 	}
 
@@ -57,15 +59,22 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 	const tipo = usuario ? "usuario" : "organizador";
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(c, "session", `${tipo}:${cuenta.id}`, process.env.COOKIE_SECRET!, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "Lax",
-		path: "/",
-		maxAge: 60 * 60 * 24 * 7,
-	});
+	await setSignedCookie(
+		c,
+		"session",
+		`${tipo}:${cuenta.id}:${usuario?.rol ?? "ORGANIZADOR"}`,
+		// biome-ignore lint/style/noNonNullAssertion: variable validada
+		process.env.COOKIE_SECRET!,
+		{
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "Lax",
+			path: "/",
+			maxAge: 60 * 60 * 24 * 7,
+		},
+	);
 
-	return c.json({ message: "Exito" }, 200);
+	return c.json({ message: "Exito", tipo, rol: usuario?.rol ?? "ORGANIZADOR" }, 200);
 });
 
 // Registro del usuario
@@ -107,18 +116,24 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	});
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(c, "session", `usuario:${usuario.id}`, process.env.COOKIE_SECRET!, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "Lax",
-		path: "/",
-		maxAge: 60 * 60 * 24 * 7,
-	});
+	await setSignedCookie(
+		c,
+		"session",
+		`usuario:${usuario.id}:${usuario.rol}`,
+		// biome-ignore lint/style/noNonNullAssertion: variable validada
+		process.env.COOKIE_SECRET!,
+		{
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "Lax",
+			path: "/",
+			maxAge: 60 * 60 * 24 * 7,
+		},
+	);
 
 	return c.json({ message: "Exito" }, 201);
 });
 
-// Registro del organizador
 app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c: Context) => {
 	const body = await c.req.parseBody();
 
@@ -148,11 +163,12 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c:
 	});
 
 	// Crear el organizador
-	const usuario = await prisma.organizador.create({
+	const organizador = await prisma.organizador.create({
 		data: {
 			email: datos.data.email,
 			nombre_organizacion: datos.data.nombreOrganizacion,
 			rut_ruc: datos.data.rut,
+			departamento: datos.data.departamento,
 			telefono: datos.data.telefono,
 			passhash,
 
@@ -172,15 +188,105 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c:
 	});
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(c, "session", `organizador:${usuario.id}`, process.env.COOKIE_SECRET!, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "Lax",
-		path: "/",
-		maxAge: 60 * 60 * 24 * 7,
-	});
+	await setSignedCookie(
+		c,
+		"session",
+		`organizador:${organizador.id}:ORGANIZADOR`,
+		// biome-ignore lint/style/noNonNullAssertion: variable validada
+		process.env.COOKIE_SECRET!,
+		{
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "Lax",
+			path: "/",
+			maxAge: 60 * 60 * 24 * 7,
+		},
+	);
 
 	return c.json({ message: "Exito" }, 201);
+});
+
+app.get("/google", Google(), async (c: Context) => {
+	const google = c.get("user-google");
+
+	if (!google?.email || !google.id || !google.verified_email) {
+		throw new BadRequestError();
+	}
+
+	let usuario = await prisma.usuario.findUnique({ where: { email: google.email } });
+
+	if (usuario?.sub && usuario.sub !== google.id) {
+		throw new BadRequestError();
+	}
+
+	if (!usuario) {
+		usuario = await prisma.usuario.create({
+			data: {
+				nombres: google.given_name ?? google.name ?? "",
+				apellidos: google.family_name ?? "",
+				email: google.email,
+				sub: google.id,
+			},
+		});
+	} else if (!usuario.sub) {
+		usuario = await prisma.usuario.update({ where: { id: usuario.id }, data: { sub: google.id } });
+	}
+
+	await setSignedCookie(
+		c,
+		"session",
+		`usuario:${usuario.id}:${usuario.rol}`,
+		// biome-ignore lint/style/noNonNullAssertion: variable validada
+		process.env.COOKIE_SECRET!,
+		{
+			httpOnly: true,
+			secure: process.env.NODE_ENV === "production",
+			sameSite: "Lax",
+			path: "/",
+			maxAge: 60 * 60 * 24 * 7,
+		},
+	);
+
+	return c.redirect("http://localhost:5173/turista");
+});
+
+app.get("/check", async (c: Context) => {
+	// biome-ignore lint/style/noNonNullAssertion: variable validada
+	const sesion = await getSignedCookie(c, process.env.COOKIE_SECRET!, "session");
+
+	if (!sesion) {
+		throw new UnauthorizedError();
+	}
+
+	const [tipo, id] = sesion.split(":");
+
+	if (tipo === "organizador") {
+		const organizador = await prisma.organizador.findUnique({
+			where: { id: Number(id) },
+			select: { id: true, nombre_organizacion: true },
+		});
+
+		if (!organizador) {
+			throw new UnauthorizedError();
+		}
+
+		return c.json({
+			id: organizador.id,
+			rol: "ORGANIZADOR",
+			nombre: organizador.nombre_organizacion,
+		});
+	}
+
+	const usuario = await prisma.usuario.findUnique({
+		where: { id: Number(id) },
+		select: { id: true, nombres: true, rol: true },
+	});
+
+	if (!usuario) {
+		throw new UnauthorizedError();
+	}
+
+	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres });
 });
 
 export { app as AuthRoute };

@@ -11,6 +11,7 @@
     "orm:deploy": "prisma migrate deploy",
     "studio": "prisma studio",
     "test": "vitest run",
+    "check": "biome format --write ./src/app && biome check --write ./src/app",
     "format:middleware": "biome format --write ./src/middleware",
     "format:app": "biome format --write ./src/app",
     "format:conf": "biome format --write ./src/configuracion"

@@ -10,6 +10,6 @@ app.use(
 	}),
 );
 
-app.get("/privado/:archivo", async (con) => {});
+// app.get("/privado/:archivo", async (con) => {});
 
 export { app as ArchivosRoute };

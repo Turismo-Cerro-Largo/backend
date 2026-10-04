@@ -8,26 +8,26 @@ datasource db {
 }
 
 model Usuario {
-  id               Int                     @id @default(autoincrement())
-  nombres          String                  @db.VarChar(100)
-  apellidos        String                  @db.VarChar(100)
-  email            String                  @unique
-  departamento     String                  @db.VarChar(100)
-  localidad        String                  @db.VarChar(120)
-  fecha_nacimiento DateTime                @db.Date
-  telefono         String                  @db.VarChar(30)
-  genero           Genero
-  cedula           String                  @unique @db.VarChar(8)
-  passhash         String?                 @db.VarChar(255)
-  rol              Rol                     @default(TURISTA)
-  sub              String?                 @unique
-  creado_en        DateTime                @default(now())
-  comentarios      Comentario[]
-  favoritos        Favorito[]
-  recuperaciones   SolicitudRecuperacion[]
+  id               Int       @id @default(autoincrement())
+  nombres          String    @db.VarChar(100)
+  apellidos        String    @db.VarChar(100)
+  email            String    @unique
+  departamento     String?   @db.VarChar(100)
+  fecha_nacimiento DateTime? @db.Date
+  telefono         String?   @db.VarChar(30)
+  genero           Genero?
+  cedula           String?   @unique @db.VarChar(8)
+  passhash         String?   @db.VarChar(255)
+  rol              Rol       @default(TURISTA)
+  sub              String?   @unique
+  creado_en        DateTime  @default(now())
+
+  comentarios    Comentario[]
+  favoritos      Favorito[]
+  recuperaciones SolicitudRecuperacion[]
 
   @@index([email])
-  @@index([departamento, localidad])
+  @@index([departamento])
   @@map("usuario")
 }
 
@@ -35,6 +35,7 @@ model Organizador {
   id                  Int                     @id @default(autoincrement())
   nombre_organizacion String                  @db.VarChar(150)
   rut_ruc             String                  @unique @db.VarChar(30)
+  departamento     String?   @db.VarChar(100)
   email               String                  @unique
   telefono            String                  @db.VarChar(30)
   sitio_web           String?                 @db.VarChar(500)
