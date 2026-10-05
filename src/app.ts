@@ -1,9 +1,8 @@
-import { Hono } from 'hono'
-import { Configuracion } from './configuracion/configuracion.js'
-import 'dotenv/config'
-import { AppRouter } from './routes/AppRouter.js'
+import { Hono } from "hono";
+import { AppRouter } from "./app/app-router.js";
+import { Configuracion } from "./configuracion/configuracion.js";
 
-const app = new Hono()
+const app = new Hono();
 
 /**
  * Middlware
@@ -13,6 +12,6 @@ Configuracion(app);
 /**
  * Router
  */
-app.route("/api", AppRouter)
+app.route("/", AppRouter);
 
-export { app }
+export { app };
