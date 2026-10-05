@@ -1,8 +1,9 @@
 import { hash, verify } from "@node-rs/argon2";
 import { type Context, Hono } from "hono";
-import { getSignedCookie, setSignedCookie } from "hono/cookie";
+import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
 import { BadRequestError, UnauthorizedError } from "../../configuracion/AppError.js";
 import { prisma } from "../../configuracion/db.js";
+import { env } from "../../configuracion/env.js";
 import { ArchivosOrg } from "../../middleware/Archivos.js";
 import { Google } from "../../middleware/Google.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
@@ -63,8 +64,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 		c,
 		"session",
 		`${tipo}:${cuenta.id}:${usuario?.rol ?? "ORGANIZADOR"}`,
-		// biome-ignore lint/style/noNonNullAssertion: variable validada
-		process.env.COOKIE_SECRET!,
+		env.COOKIE_SECRET,
 		{
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
@@ -116,20 +116,13 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	});
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(
-		c,
-		"session",
-		`usuario:${usuario.id}:${usuario.rol}`,
-		// biome-ignore lint/style/noNonNullAssertion: variable validada
-		process.env.COOKIE_SECRET!,
-		{
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "Lax",
-			path: "/",
-			maxAge: 60 * 60 * 24 * 7,
-		},
-	);
+	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === "production",
+		sameSite: "Lax",
+		path: "/",
+		maxAge: 60 * 60 * 24 * 7,
+	});
 
 	return c.json({ message: "Exito" }, 201);
 });
@@ -192,8 +185,7 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c:
 		c,
 		"session",
 		`organizador:${organizador.id}:ORGANIZADOR`,
-		// biome-ignore lint/style/noNonNullAssertion: variable validada
-		process.env.COOKIE_SECRET!,
+		env.COOKIE_SECRET,
 		{
 			httpOnly: true,
 			secure: process.env.NODE_ENV === "production",
@@ -232,27 +224,19 @@ app.get("/google", Google(), async (c: Context) => {
 		usuario = await prisma.usuario.update({ where: { id: usuario.id }, data: { sub: google.id } });
 	}
 
-	await setSignedCookie(
-		c,
-		"session",
-		`usuario:${usuario.id}:${usuario.rol}`,
-		// biome-ignore lint/style/noNonNullAssertion: variable validada
-		process.env.COOKIE_SECRET!,
-		{
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "Lax",
-			path: "/",
-			maxAge: 60 * 60 * 24 * 7,
-		},
-	);
+	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
+		httpOnly: true,
+		secure: process.env.NODE_ENV === "production",
+		sameSite: "Lax",
+		path: "/",
+		maxAge: 60 * 60 * 24 * 7,
+	});
 
 	return c.redirect("http://localhost:5173/turista");
 });
 
 app.get("/check", async (c: Context) => {
-	// biome-ignore lint/style/noNonNullAssertion: variable validada
-	const sesion = await getSignedCookie(c, process.env.COOKIE_SECRET!, "session");
+	const sesion = await getSignedCookie(c, env.COOKIE_SECRET, "session");
 
 	if (!sesion) {
 		throw new UnauthorizedError();
@@ -287,6 +271,11 @@ app.get("/check", async (c: Context) => {
 	}
 
 	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres });
+});
+
+app.post("/logout", async (c: Context) => {
+	deleteCookie(c, "session", { path: "/" });
+	return c.json({ message: "Exito" }, 200);
 });
 
 export { app as AuthRoute };
