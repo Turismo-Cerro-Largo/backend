@@ -127,6 +127,7 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	return c.json({ message: "Exito" }, 201);
 });
 
+// registro
 app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c: Context) => {
 	const body = await c.req.parseBody();
 
@@ -198,6 +199,7 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c:
 	return c.json({ message: "Exito" }, 201);
 });
 
+// login-register mediante google
 app.get("/google", Google(), async (c: Context) => {
 	const google = c.get("user-google");
 
@@ -235,6 +237,7 @@ app.get("/google", Google(), async (c: Context) => {
 	return c.redirect("http://localhost:5173/turista");
 });
 
+// verificar session
 app.get("/check", async (c: Context) => {
 	const sesion = await getSignedCookie(c, env.COOKIE_SECRET, "session");
 
@@ -273,7 +276,9 @@ app.get("/check", async (c: Context) => {
 	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres });
 });
 
-app.post("/logout", async (c: Context) => {
+// cerrar session ambos metodos
+// https://hono.dev/docs/api/routing
+app.on(["GET", "POST"], "/logout", async (c: Context) => {
 	deleteCookie(c, "session", { path: "/" });
 	return c.json({ message: "Exito" }, 200);
 });
