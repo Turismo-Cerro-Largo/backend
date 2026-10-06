@@ -1,0 +1,11 @@
+### Turista: registro
+POST http://localhost:4000/api/auth/register
+Content-Type: application/x-www-form-urlencoded
+
+nombres=Prueba&apellidos=Turista&email=turista.prueba@gmail.com&departamento=Cerro%20Largo&fecha_nacimiento=1995-06-15&genero=otro&password=Clave1234
+
+### Turista: login
+POST http://localhost:4000/api/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+email=turista.prueba@gmail.com&password=Clave1234
