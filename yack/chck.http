@@ -1,9 +1,0 @@
-### Check
-GET http://localhost:4000/api/auth/check
-
-### Check sin cookie
-# @no-cookie-jar
-GET http://localhost:4000/api/auth/check
-
-### Logout
-POST http://localhost:4000/api/auth/logout
