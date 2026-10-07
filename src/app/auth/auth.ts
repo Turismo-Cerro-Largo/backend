@@ -1,7 +1,9 @@
 import { hash, verify } from "@node-rs/argon2";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 import { type Context, Hono } from "hono";
 import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
-import { BadRequestError, UnauthorizedError } from "../../configuracion/AppError.js";
+import { BadRequestError, ConflictError, UnauthorizedError } from "../../configuracion/AppError.js";
 import { prisma } from "../../configuracion/db.js";
 import { env } from "../../configuracion/env.js";
 import { ArchivosOrg } from "../../middleware/Archivos.js";
@@ -14,6 +16,13 @@ import {
 } from "./auth.schema.js";
 
 const app = new Hono();
+async function correoEnUso(email: string) {
+    const [usuario, organizador] = await Promise.all([
+        prisma.usuario.findUnique({ where: { email }, select: { id: true } }),
+        prisma.organizador.findUnique({ where: { email }, select: { id: true } })
+    ]);
+    return Boolean(usuario || organizador);
+}
 
 // Login
 app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
@@ -87,14 +96,7 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 		throw new BadRequestError();
 	}
 
-	// Si el usuario ya existe
-	const duplicado = await prisma.usuario.findUnique({
-		where: { email: datos.data.email },
-	});
-
-	if (duplicado) {
-		throw new BadRequestError();
-	}
+    if (await correoEnUso(datos.data.email)) throw new ConflictError("Ese correo ya está registrado.");
 
 	// Separar la password y fecha
 	const { password, fecha_nacimiento, ...datosUsuario } = datos.data;
@@ -128,21 +130,20 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 });
 
 // registro
-app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c: Context) => {
+app.post("/register-organizador", bodyLimitado(20, "MB"), async (c, next) => {
+    const datos = auth_organizador_register_scheem.safeParse(await c.req.parseBody());
+    if (!datos.success) throw new BadRequestError("Revisá los datos de la organización.");
+    if (await correoEnUso(datos.data.email)) throw new ConflictError("Ese correo ya está registrado.");
+    if (await prisma.organizador.findUnique({ where: { rut_ruc: datos.data.rut }, select: { id: true } })) {
+        throw new ConflictError("Ese RUT ya está registrado.");
+    }
+    await next();
+}, ArchivosOrg, async (c: Context) => {
 	const body = await c.req.parseBody();
 
 	// Verificar el formulario
 	const datos = auth_organizador_register_scheem.safeParse(body);
 	if (!datos.success) {
-		throw new BadRequestError();
-	}
-
-	// Si el organizador ya existe
-	const duplicado = await prisma.organizador.findUnique({
-		where: { email: datos.data.email },
-	});
-
-	if (duplicado) {
 		throw new BadRequestError();
 	}
 
@@ -157,7 +158,9 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c:
 	});
 
 	// Crear el organizador
-	const organizador = await prisma.organizador.create({
+    let organizador;
+    try {
+	organizador = await prisma.organizador.create({
 		data: {
 			email: datos.data.email,
 			nombre_organizacion: datos.data.nombreOrganizacion,
@@ -180,6 +183,12 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c:
 			},
 		},
 	});
+
+    } catch (e) {
+        await Promise.all([frente, dorso].map(nombre => unlink(path.join(process.cwd(), "privado", nombre)).catch(() => undefined)));
+        if ((e as { code?: string }).code === "P2002") throw new ConflictError("Ese correo o RUT ya está registrado.");
+        throw e;
+    }
 
 	// Cookie para guardar la sesion
 	await setSignedCookie(
@@ -214,6 +223,7 @@ app.get("/google", Google(), async (c: Context) => {
 	}
 
 	if (!usuario) {
+        if (await prisma.organizador.findUnique({ where: { email: google.email } })) throw new ConflictError("Ese correo pertenece a un organizador.");
 		usuario = await prisma.usuario.create({
 			data: {
 				nombres: google.given_name ?? google.name ?? "",
@@ -246,11 +256,12 @@ app.get("/check", async (c: Context) => {
 	}
 
 	const [tipo, id] = sesion.split(":");
+    if (!Number.isSafeInteger(Number(id)) || Number(id) < 1) throw new UnauthorizedError();
 
 	if (tipo === "organizador") {
 		const organizador = await prisma.organizador.findUnique({
 			where: { id: Number(id) },
-			select: { id: true, nombre_organizacion: true },
+			select: { id: true, nombre_organizacion: true, estado: true },
 		});
 
 		if (!organizador) {
@@ -261,6 +272,7 @@ app.get("/check", async (c: Context) => {
 			id: organizador.id,
 			rol: "ORGANIZADOR",
 			nombre: organizador.nombre_organizacion,
+            estado: organizador.estado,
 		});
 	}
 
