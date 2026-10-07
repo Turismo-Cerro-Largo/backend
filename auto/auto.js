@@ -7,7 +7,7 @@ import { prisma } from "./../src/configuracion/db.js";
             nombres: "usuario",
             apellidos: "usuario",
             email: "usuario@gmail.com",
-            passhash: await hash("Usuario", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
+            passhash: await hash("Usuario#123", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
             rol: "TURISTA"
         }
     })
@@ -17,7 +17,7 @@ import { prisma } from "./../src/configuracion/db.js";
             nombres: "admin",
             apellidos: "admin",
             email: "admin@gmail.com",
-            passhash: await hash("Admin", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
+            passhash: await hash("Admin#12345", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
             rol: "ADMINISTRADOR"
         }
     })
@@ -29,7 +29,7 @@ import { prisma } from "./../src/configuracion/db.js";
             departamento: "Cerro Largo",
             email: "organizador@gmail.com",
             telefono: "099123456",
-            passhash: await hash("Organizador", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
+            passhash: await hash("Organizador#123", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
             estado: "APROBADO"
         }
     })
