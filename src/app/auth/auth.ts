@@ -1,3 +1,4 @@
+// src/app/auth/auth.ts
 import { hash, verify } from "@node-rs/argon2";
 import { type Context, Hono } from "hono";
 import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
@@ -67,7 +68,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 		env.COOKIE_SECRET,
 		{
 			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
+			secure: env.NODE_ENV === "production",
 			sameSite: "Lax",
 			path: "/",
 			maxAge: 60 * 60 * 24 * 7,
@@ -118,7 +119,7 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	// Cookie para guardar la sesion
 	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
 		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
+		secure: env.NODE_ENV === "production",
 		sameSite: "Lax",
 		path: "/",
 		maxAge: 60 * 60 * 24 * 7,
@@ -189,7 +190,7 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c:
 		env.COOKIE_SECRET,
 		{
 			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
+			secure: env.NODE_ENV === "production",
 			sameSite: "Lax",
 			path: "/",
 			maxAge: 60 * 60 * 24 * 7,
@@ -228,7 +229,7 @@ app.get("/google", Google(), async (c: Context) => {
 
 	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
 		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
+		secure: env.NODE_ENV === "production",
 		sameSite: "Lax",
 		path: "/",
 		maxAge: 60 * 60 * 24 * 7,
