@@ -14,7 +14,8 @@
     "check": "biome format --write ./src/app && biome check --write ./src/app",
     "format:middleware": "biome format --write ./src/middleware",
     "format:app": "biome format --write ./src/app",
-    "format:conf": "biome format --write ./src/configuracion"
+    "format:conf": "biome format --write ./src/configuracion",
+    "db:check": "tsx scripts/revisar-base.ts"
   },
   "dependencies": {
     "@hono/node-server": "^2.1.1",
