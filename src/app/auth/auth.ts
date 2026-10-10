@@ -1,3 +1,4 @@
+// src/app/auth/auth.ts
 import { hash, verify } from "@node-rs/argon2";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
@@ -14,6 +15,7 @@ import {
 	auth_usuario_login_scheem,
 	auth_usuario_register_scheem,
 } from "./auth.schema.js";
+import { crear_sesion } from "../../middleware/Session.js";
 
 const app = new Hono();
 async function correoEnUso(email: string) {
@@ -69,19 +71,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 	const tipo = usuario ? "usuario" : "organizador";
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(
-		c,
-		"session",
-		`${tipo}:${cuenta.id}:${usuario?.rol ?? "ORGANIZADOR"}`,
-		env.COOKIE_SECRET,
-		{
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "Lax",
-			path: "/",
-			maxAge: 60 * 60 * 24 * 7,
-		},
-	);
+	await crear_sesion(c, { tipo, id: cuenta.id, rol: usuario?.rol ?? "ORGANIZADOR" })
 
 	return c.json({ message: "Exito", tipo, rol: usuario?.rol ?? "ORGANIZADOR" }, 200);
 });
@@ -118,13 +108,7 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	});
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "Lax",
-		path: "/",
-		maxAge: 60 * 60 * 24 * 7,
-	});
+	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol })
 
 	return c.json({ message: "Exito" }, 201);
 });
@@ -191,19 +175,7 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), async (c, next) => {
     }
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(
-		c,
-		"session",
-		`organizador:${organizador.id}:ORGANIZADOR`,
-		env.COOKIE_SECRET,
-		{
-			httpOnly: true,
-			secure: process.env.NODE_ENV === "production",
-			sameSite: "Lax",
-			path: "/",
-			maxAge: 60 * 60 * 24 * 7,
-		},
-	);
+	await crear_sesion(c, { tipo: "organizador", id: organizador.id, rol: "ORGANIZADOR" })
 
 	return c.json({ message: "Exito" }, 201);
 });
@@ -236,13 +208,7 @@ app.get("/google", Google(), async (c: Context) => {
 		usuario = await prisma.usuario.update({ where: { id: usuario.id }, data: { sub: google.id } });
 	}
 
-	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
-		httpOnly: true,
-		secure: process.env.NODE_ENV === "production",
-		sameSite: "Lax",
-		path: "/",
-		maxAge: 60 * 60 * 24 * 7,
-	});
+	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol })
 
 	return c.redirect("http://localhost:5173/turista");
 });
@@ -256,7 +222,6 @@ app.get("/check", async (c: Context) => {
 	}
 
 	const [tipo, id] = sesion.split(":");
-    if (!Number.isSafeInteger(Number(id)) || Number(id) < 1) throw new UnauthorizedError();
 
 	if (tipo === "organizador") {
 		const organizador = await prisma.organizador.findUnique({
@@ -272,7 +237,7 @@ app.get("/check", async (c: Context) => {
 			id: organizador.id,
 			rol: "ORGANIZADOR",
 			nombre: organizador.nombre_organizacion,
-            estado: organizador.estado,
+			estado: organizador.estado
 		});
 	}
 
@@ -287,6 +252,7 @@ app.get("/check", async (c: Context) => {
 
 	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres });
 });
+
 
 // cerrar session ambos metodos
 // https://hono.dev/docs/api/routing
