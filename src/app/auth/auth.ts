@@ -1,3 +1,4 @@
+import { account, sessionValue } from '../admin/session.js';
 import { hash, verify } from "@node-rs/argon2";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
@@ -72,7 +73,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 	await setSignedCookie(
 		c,
 		"session",
-		`${tipo}:${cuenta.id}:${usuario?.rol ?? "ORGANIZADOR"}`,
+		sessionValue(tipo, cuenta.id, usuario?.rol ?? "ORGANIZADOR"),
 		env.COOKIE_SECRET,
 		{
 			httpOnly: true,
@@ -118,7 +119,7 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	});
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
+	await setSignedCookie(c, "session", sessionValue("usuario", usuario.id, usuario.rol), env.COOKIE_SECRET, {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
 		sameSite: "Lax",
@@ -194,7 +195,7 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), async (c, next) => {
 	await setSignedCookie(
 		c,
 		"session",
-		`organizador:${organizador.id}:ORGANIZADOR`,
+		sessionValue("organizador", organizador.id, "ORGANIZADOR"),
 		env.COOKIE_SECRET,
 		{
 			httpOnly: true,
@@ -236,7 +237,7 @@ app.get("/google", Google(), async (c: Context) => {
 		usuario = await prisma.usuario.update({ where: { id: usuario.id }, data: { sub: google.id } });
 	}
 
-	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
+	await setSignedCookie(c, "session", sessionValue("usuario", usuario.id, usuario.rol), env.COOKIE_SECRET, {
 		httpOnly: true,
 		secure: process.env.NODE_ENV === "production",
 		sameSite: "Lax",
@@ -248,45 +249,7 @@ app.get("/google", Google(), async (c: Context) => {
 });
 
 // verificar session
-app.get("/check", async (c: Context) => {
-	const sesion = await getSignedCookie(c, env.COOKIE_SECRET, "session");
-
-	if (!sesion) {
-		throw new UnauthorizedError();
-	}
-
-	const [tipo, id] = sesion.split(":");
-    if (!Number.isSafeInteger(Number(id)) || Number(id) < 1) throw new UnauthorizedError();
-
-	if (tipo === "organizador") {
-		const organizador = await prisma.organizador.findUnique({
-			where: { id: Number(id) },
-			select: { id: true, nombre_organizacion: true, estado: true },
-		});
-
-		if (!organizador) {
-			throw new UnauthorizedError();
-		}
-
-		return c.json({
-			id: organizador.id,
-			rol: "ORGANIZADOR",
-			nombre: organizador.nombre_organizacion,
-            estado: organizador.estado,
-		});
-	}
-
-	const usuario = await prisma.usuario.findUnique({
-		where: { id: Number(id) },
-		select: { id: true, nombres: true, rol: true },
-	});
-
-	if (!usuario) {
-		throw new UnauthorizedError();
-	}
-
-	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres });
-});
+app.get("/check", async (c) => c.json(await account(c)));
 
 // cerrar session ambos metodos
 // https://hono.dev/docs/api/routing

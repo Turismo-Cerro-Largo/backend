@@ -15,6 +15,7 @@
     "outDir": "./dist"
   },
   "exclude": [
+    "scripts",
     "node_modules",
     "prisma7.config.ts",
     "./tests",
