@@ -13,6 +13,7 @@ import {
 	auth_usuario_login_scheem,
 	auth_usuario_register_scheem,
 } from "./auth.schema.js";
+import { crear_sesion } from "../../middleware/Session.js";
 
 const app = new Hono();
 
@@ -61,19 +62,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 	const tipo = usuario ? "usuario" : "organizador";
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(
-		c,
-		"session",
-		`${tipo}:${cuenta.id}:${usuario?.rol ?? "ORGANIZADOR"}`,
-		env.COOKIE_SECRET,
-		{
-			httpOnly: true,
-			secure: env.NODE_ENV === "production",
-			sameSite: "Lax",
-			path: "/",
-			maxAge: 60 * 60 * 24 * 7,
-		},
-	);
+	await crear_sesion(c, { tipo, id: cuenta.id, rol: usuario?.rol ?? "ORGANIZADOR" })
 
 	return c.json({ message: "Exito", tipo, rol: usuario?.rol ?? "ORGANIZADOR" }, 200);
 });
@@ -117,13 +106,7 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	});
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
-		httpOnly: true,
-		secure: env.NODE_ENV === "production",
-		sameSite: "Lax",
-		path: "/",
-		maxAge: 60 * 60 * 24 * 7,
-	});
+	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol })
 
 	return c.json({ message: "Exito" }, 201);
 });
@@ -183,19 +166,7 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosOrg, async (c:
 	});
 
 	// Cookie para guardar la sesion
-	await setSignedCookie(
-		c,
-		"session",
-		`organizador:${organizador.id}:ORGANIZADOR`,
-		env.COOKIE_SECRET,
-		{
-			httpOnly: true,
-			secure: env.NODE_ENV === "production",
-			sameSite: "Lax",
-			path: "/",
-			maxAge: 60 * 60 * 24 * 7,
-		},
-	);
+	await crear_sesion(c, { tipo: "organizador", id: organizador.id, rol: "ORGANIZADOR" })
 
 	return c.json({ message: "Exito" }, 201);
 });
@@ -227,13 +198,7 @@ app.get("/google", Google(), async (c: Context) => {
 		usuario = await prisma.usuario.update({ where: { id: usuario.id }, data: { sub: google.id } });
 	}
 
-	await setSignedCookie(c, "session", `usuario:${usuario.id}:${usuario.rol}`, env.COOKIE_SECRET, {
-		httpOnly: true,
-		secure: env.NODE_ENV === "production",
-		sameSite: "Lax",
-		path: "/",
-		maxAge: 60 * 60 * 24 * 7,
-	});
+	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol })
 
 	return c.redirect("http://localhost:5173/turista");
 });
