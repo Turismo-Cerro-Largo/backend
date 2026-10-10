@@ -9,6 +9,5 @@ const app = new Hono().basePath("/api");
 app.route("/auth", AuthRoute);
 app.route("/organizador", OrganizadorRoute);
 app.route("/healt", HealthRoute)
-// Comprobar que el servidor y MySQL responden.
 
 export { app as AppRouter };

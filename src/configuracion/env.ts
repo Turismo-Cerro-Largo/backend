@@ -16,9 +16,9 @@ export const env = z
 		COOKIE_SECRET: z.string().min(32),
 
 		// Google
-		GOOGLE_ID: z.string().min(1),
-		GOOGLE_SECRET: z.string().min(1),
-		GOOGLE_REDIRECT_FRONTEND: z.string(),
+		GOOGLE_ID: z.string().optional(),
+		GOOGLE_SECRET: z.string().optional(),
+		GOOGLE_REDIRECT_FRONTEND: z.string().optional(),
 
 		// Environment
 		NODE_ENV: z
