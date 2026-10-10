@@ -23,6 +23,7 @@ model Usuario {
   creado_en        DateTime  @default(now())
 
   comentarios    Comentario[]
+  eventos_administrados Evento[]
   favoritos      Favorito[]
   recuperaciones SolicitudRecuperacion[]
 
@@ -166,10 +167,12 @@ model Evento {
   motivo_rechazo String?      @db.Text
   creado_en      DateTime     @default(now())
   actualizado_en DateTime     @updatedAt
-  id_organizador Int
+  id_organizador Int?
+  id_administrador Int?
   id_categoria   Int
   categoria      Categoria    @relation(fields: [id_categoria], references: [id])
-  organizador    Organizador  @relation(fields: [id_organizador], references: [id])
+  organizador    Organizador? @relation(fields: [id_organizador], references: [id])
+  administrador Usuario? @relation(fields: [id_administrador], references: [id])
   recursos       Recurso[]
 
   @@index([estado, inicio])
@@ -211,6 +214,7 @@ model HorarioOmnibus {
   destino       String                 @db.VarChar(120)
   hora_salida   DateTime               @db.Time(0)
   hora_llegada  DateTime?              @db.Time(0)
+  llegada_dia_siguiente Boolean @default(false)
   dias          String                 @db.VarChar(100)
   tipo_servicio TipoServicioTransporte
   precio        Decimal?               @db.Decimal(10, 2)
