@@ -216,7 +216,7 @@ app.get("/check", async (c: Context) => {
 	if (tipo === "organizador") {
 		const organizador = await prisma.organizador.findUnique({
 			where: { id: Number(id) },
-			select: { id: true, nombre_organizacion: true },
+			select: { id: true, nombre_organizacion: true, estado: true },
 		});
 
 		if (!organizador) {
@@ -227,6 +227,7 @@ app.get("/check", async (c: Context) => {
 			id: organizador.id,
 			rol: "ORGANIZADOR",
 			nombre: organizador.nombre_organizacion,
+			estado: organizador.estado
 		});
 	}
 
