@@ -9,12 +9,8 @@ const app = new Hono().basePath("/api");
 
 app.route("/auth", AuthRoute);
 app.route("/organizador", OrganizadorRoute);
-<<<<<<< HEAD
-app.route("/healt", HealthRoute)
-=======
 app.route("/healt", HealthRoute);
 app.route("/categorias", CategoriasRoute);
 // Comprobar que el servidor y MySQL responden.
->>>>>>> 713913d (Integracion de api de categorias)
 
 export { app as AppRouter };
