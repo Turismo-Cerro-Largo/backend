@@ -71,7 +71,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 	const tipo = usuario ? "usuario" : "organizador";
 
 	// Cookie para guardar la sesion
-	await crear_sesion(c, { tipo, id: cuenta.id, rol: usuario?.rol ?? "ORGANIZADOR" })
+	await crear_sesion(c, { tipo, id: cuenta.id, rol: usuario?.rol ?? "ORGANIZADOR" });
 
 	return c.json({ message: "Exito", tipo, rol: usuario?.rol ?? "ORGANIZADOR" }, 200);
 });
@@ -108,7 +108,7 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 	});
 
 	// Cookie para guardar la sesion
-	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol })
+	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol });
 
 	return c.json({ message: "Exito" }, 201);
 });
@@ -175,7 +175,7 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), async (c, next) => {
     }
 
 	// Cookie para guardar la sesion
-	await crear_sesion(c, { tipo: "organizador", id: organizador.id, rol: "ORGANIZADOR" })
+	await crear_sesion(c, { tipo: "organizador", id: organizador.id, rol: "ORGANIZADOR" });
 
 	return c.json({ message: "Exito" }, 201);
 });
@@ -208,7 +208,7 @@ app.get("/google", Google(), async (c: Context) => {
 		usuario = await prisma.usuario.update({ where: { id: usuario.id }, data: { sub: google.id } });
 	}
 
-	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol })
+	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol });
 
 	return c.redirect("http://localhost:5173/turista");
 });
@@ -237,7 +237,7 @@ app.get("/check", async (c: Context) => {
 			id: organizador.id,
 			rol: "ORGANIZADOR",
 			nombre: organizador.nombre_organizacion,
-			estado: organizador.estado
+			estado: organizador.estado,
 		});
 	}
 
