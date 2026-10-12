@@ -1,15 +1,43 @@
+// src/app/archivos/archivos.ts
 import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
+import { getMimeType } from "hono/utils/mime";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { prisma } from "../../configuracion/db.js";
+import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
+import { VerificarSessionRol } from "../../middleware/Session.js";
 
 const app = new Hono();
 
 app.use(
-	"/publico/*",
+	"/publicos/*",
 	serveStatic({
-		root: "./publico",
+		root: "./publicos",
+		rewriteRequestPath: (ruta) => ruta.replace(/^.*?\/publicos/, ""),
 	}),
 );
 
-// app.get("/privado/:archivo", async (con) => {});
+app.get("/privados/:archivo", VerificarSessionRol(["ORGANIZADOR", "ADMINISTRADOR"]), async (c) => {
+	if (c.req.param("archivo") !== path.basename(c.req.param("archivo"))) throw new BadRequestError();
+
+	if (!await prisma.documentoOrganizador.findFirst({
+		where: {
+			uri: c.req.param("archivo"),
+			...(c.get("sesion").rol === "ADMINISTRADOR" ? {} : { id_organizador: Number(c.get("sesion").id) }),
+		},
+		select: { id: true },
+	})) throw new NotFoundError();
+
+	const contenido = await readFile(path.join(process.cwd(), "privados", c.req.param("archivo"))).catch(() => null);
+
+	if (!contenido) throw new NotFoundError();
+
+	return c.body(contenido, 200, {
+		"Content-Type": getMimeType(c.req.param("archivo")) ?? "application/octet-stream",
+		"Cache-Control": "private, no-store",
+		"X-Content-Type-Options": "nosniff"
+	});
+});
 
 export { app as ArchivosRoute };

@@ -1,5 +1,30 @@
+// auto/auto.js
 import { hash } from "@node-rs/argon2";
 import { prisma } from "./../src/configuracion/db.js";
+
+const categorias = [
+  {
+    nombre: "Alojamiento",
+    descripcion: "Hoteles, hostales, posadas y hospedajes."
+  },
+  {
+    nombre: "Restaurantes",
+    descripcion: "Restaurantes, cafeterías y gastronomía local."
+  },
+  {
+    nombre: "Parques/Naturaleza",
+    descripcion: "Parques, reservas naturales y espacios al aire libre."
+  },
+  {
+    nombre: "Cultura",
+    descripcion: "Museos, patrimonio histórico y actividades culturales."
+  },
+  {
+    nombre: "Eventos Sociales",
+    descripcion: "Ferias, festivales, fiestas y encuentros sociales."
+  }
+];
+
 
 (async () => {
     await prisma.usuario.create({
@@ -32,5 +57,10 @@ import { prisma } from "./../src/configuracion/db.js";
             passhash: await hash("Organizador#123", { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
             estado: "APROBADO"
         }
+    })
+
+
+    await prisma.categoria.createMany({
+        data: categorias
     })
 })().finally(() => prisma.$disconnect())

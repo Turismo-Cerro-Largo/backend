@@ -7,7 +7,7 @@ import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
 import { BadRequestError, ConflictError, UnauthorizedError } from "../../configuracion/AppError.js";
 import { prisma } from "../../configuracion/db.js";
 import { env } from "../../configuracion/env.js";
-import { ArchivosOrg } from "../../middleware/Archivos.js";
+import { ArchivosPrivados } from "../../middleware/Archivos.js";
 import { Google } from "../../middleware/Google.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
 import {
@@ -19,11 +19,11 @@ import { crear_sesion } from "../../middleware/Session.js";
 
 const app = new Hono();
 async function correoEnUso(email: string) {
-    const [usuario, organizador] = await Promise.all([
-        prisma.usuario.findUnique({ where: { email }, select: { id: true } }),
-        prisma.organizador.findUnique({ where: { email }, select: { id: true } })
-    ]);
-    return Boolean(usuario || organizador);
+	const [usuario, organizador] = await Promise.all([
+		prisma.usuario.findUnique({ where: { email }, select: { id: true } }),
+		prisma.organizador.findUnique({ where: { email }, select: { id: true } })
+	]);
+	return Boolean(usuario || organizador);
 }
 
 // Login
@@ -86,7 +86,7 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 		throw new BadRequestError();
 	}
 
-    if (await correoEnUso(datos.data.email)) throw new ConflictError("Ese correo ya está registrado.");
+	if (await correoEnUso(datos.data.email)) throw new ConflictError("Ese correo ya está registrado.");
 
 	// Separar la password y fecha
 	const { password, fecha_nacimiento, ...datosUsuario } = datos.data;
@@ -114,67 +114,40 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 });
 
 // registro
-app.post("/register-organizador", bodyLimitado(20, "MB"), async (c, next) => {
-    const datos = auth_organizador_register_scheem.safeParse(await c.req.parseBody());
-    if (!datos.success) throw new BadRequestError("Revisá los datos de la organización.");
-    if (await correoEnUso(datos.data.email)) throw new ConflictError("Ese correo ya está registrado.");
-    if (await prisma.organizador.findUnique({ where: { rut_ruc: datos.data.rut }, select: { id: true } })) {
-        throw new ConflictError("Ese RUT ya está registrado.");
-    }
-    await next();
-}, ArchivosOrg, async (c: Context) => {
-	const body = await c.req.parseBody();
+app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosPrivados(), async (c: Context) => {
+	let organizador;
 
-	// Verificar el formulario
-	const datos = auth_organizador_register_scheem.safeParse(body);
-	if (!datos.success) {
-		throw new BadRequestError();
+	try {
+		const datos = auth_organizador_register_scheem.safeParse(await c.req.parseBody());
+
+		if (!datos.success) throw new BadRequestError();
+
+		if (await correoEnUso(datos.data.email)) throw new ConflictError("Ese correo ya está registrado.");
+
+		organizador = await prisma.organizador.create({
+			data: {
+				email: datos.data.email,
+				nombre_organizacion: datos.data.nombreOrganizacion,
+				rut_ruc: datos.data.rut,
+				departamento: datos.data.departamento,
+				telefono: datos.data.telefono,
+				passhash: await hash(datos.data.password, { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
+				documentos: {
+					create: [
+						{ tipo: "CEDULA_FRENTE", uri: c.get("fotoCedulaFrente") },
+						{ tipo: "CEDULA_DORSO", uri: c.get("fotoCedulaDorso") },
+					],
+				},
+			},
+		});
+	} catch (e) {
+		await Promise.all([c.get("fotoCedulaFrente"), c.get("fotoCedulaDorso")].map((nombre) => unlink(path.join(process.cwd(), "privados", nombre)).catch(() => undefined)));
+
+		if ((e as { code?: string }).code === "P2002") throw new ConflictError("Ese correo o RUT ya está registrado.");
+
+		throw e;
 	}
 
-	const frente = c.get("fotoCedulaFrente");
-	const dorso = c.get("fotoCedulaDorso");
-
-	// Crear el hash de la password
-	const passhash = await hash(datos.data.password, {
-		memoryCost: 19456,
-		timeCost: 2,
-		parallelism: 1,
-	});
-
-	// Crear el organizador
-    let organizador;
-    try {
-	organizador = await prisma.organizador.create({
-		data: {
-			email: datos.data.email,
-			nombre_organizacion: datos.data.nombreOrganizacion,
-			rut_ruc: datos.data.rut,
-			departamento: datos.data.departamento,
-			telefono: datos.data.telefono,
-			passhash,
-
-			documentos: {
-				create: [
-					{
-						tipo: "CEDULA_FRENTE",
-						uri: `privado/${frente}`,
-					},
-					{
-						tipo: "CEDULA_DORSO",
-						uri: `privado/${dorso}`,
-					},
-				],
-			},
-		},
-	});
-
-    } catch (e) {
-        await Promise.all([frente, dorso].map(nombre => unlink(path.join(process.cwd(), "privado", nombre)).catch(() => undefined)));
-        if ((e as { code?: string }).code === "P2002") throw new ConflictError("Ese correo o RUT ya está registrado.");
-        throw e;
-    }
-
-	// Cookie para guardar la sesion
 	await crear_sesion(c, { tipo: "organizador", id: organizador.id, rol: "ORGANIZADOR" });
 
 	return c.json({ message: "Exito" }, 201);
@@ -195,7 +168,7 @@ app.get("/google", Google(), async (c: Context) => {
 	}
 
 	if (!usuario) {
-        if (await prisma.organizador.findUnique({ where: { email: google.email } })) throw new ConflictError("Ese correo pertenece a un organizador.");
+		if (await prisma.organizador.findUnique({ where: { email: google.email } })) throw new ConflictError("Ese correo pertenece a un organizador.");
 		usuario = await prisma.usuario.create({
 			data: {
 				nombres: google.given_name ?? google.name ?? "",
@@ -252,7 +225,6 @@ app.get("/check", async (c: Context) => {
 
 	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres });
 });
-
 
 // cerrar session ambos metodos
 // https://hono.dev/docs/api/routing
