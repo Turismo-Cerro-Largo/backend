@@ -5,7 +5,10 @@ import { OrganizadorRoute } from "./organizador/organizador.js";
 import { HealthRoute } from "./health/health.js";
 import { CategoriasRoute } from "./categorias/categorias.js";
 import { ArchivosRoute } from "./archivos/archivos.js";
+import { TransporteRoute } from "./transporte/transporte.js";
 import { EventosRoute } from "./eventos/eventos.js";
+import { DashboardAdminRoute } from "./admin/dashboard.js";
+import { AdminEventosRoute } from "./admin/eventos.js";
 
 const app = new Hono().basePath("/api");
 
@@ -15,5 +18,8 @@ app.route("/healt", HealthRoute);
 app.route("/categorias", CategoriasRoute);
 app.route("/archivos", ArchivosRoute);
 app.route("/eventos", EventosRoute);
+app.route("/transporte", TransporteRoute);
+app.route("/admin/dashboard", DashboardAdminRoute);
+app.route("/admin/eventos", AdminEventosRoute);
 
 export { app as AppRouter };
