@@ -72,6 +72,22 @@ app.get("/lista", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
 	);
 });
 
+// Ficha completa para revisión administrativa. Nunca expone el hash de contraseña.
+app.get("/:id", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
+	const id = Number(c.req.param("id"));
+	if (!Number.isSafeInteger(id) || id < 1) throw new BadRequestError();
+	const organizador = await prisma.organizador.findUnique({
+		where: { id },
+		select: {
+			...camposPerfil,
+			motivo_rechazo: true,
+			documentos: { select: { tipo: true, uri: true } },
+		},
+	});
+	if (!organizador) throw new NotFoundError();
+	return c.json(organizador);
+});
+
 app.patch("/:id/estado", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
 	if (!Number.isInteger(Number(c.req.param("id"))) || Number(c.req.param("id")) < 1)
 		throw new BadRequestError();
