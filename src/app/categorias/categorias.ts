@@ -17,7 +17,7 @@ app.get("/", async (c) => {
 			descripcion: true,
 			_count: {
 				select: {
-					eventos: { where: { estado: "PUBLICADO" } },
+					eventos: true,
 					ubicaciones: true,
 				},
 			},
@@ -40,7 +40,7 @@ app.get("/:id", async (c) => {
 			descripcion: true,
 			_count: {
 				select: {
-					eventos: { where: { estado: "PUBLICADO" } },
+					eventos: true,
 					ubicaciones: true,
 				},
 			},
