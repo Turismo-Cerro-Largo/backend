@@ -10,8 +10,9 @@ import { EventosRoute } from "./eventos/eventos.js";
 import { DashboardAdminRoute } from "./admin/dashboard.js";
 import { AdminEventosRoute } from "./admin/eventos.js";
 import { AdminUbicacionesRoute } from "./admin/ubicaciones.js";
-import { AdminUsuariosRoute } from './admin/usuarios.js';
-import { AdminComentariosRoute } from './admin/comentarios.js';
+import { AdminUsuariosRoute } from "./admin/usuarios.js";
+import { AdminComentariosRoute } from "./admin/comentarios.js";
+import { UbicacionesRoute } from "./ubicaciones/ubicaciones.js";
 
 const app = new Hono().basePath("/api");
 
@@ -25,7 +26,8 @@ app.route("/transporte", TransporteRoute);
 app.route("/admin/dashboard", DashboardAdminRoute);
 app.route("/admin/eventos", AdminEventosRoute);
 app.route("/admin/ubicaciones", AdminUbicacionesRoute);
-app.route('/admin/usuarios', AdminUsuariosRoute);
-app.route('/admin/comentarios', AdminComentariosRoute);
+app.route("/admin/usuarios", AdminUsuariosRoute);
+app.route("/admin/comentarios", AdminComentariosRoute);
+app.route("/ubicaciones", UbicacionesRoute);
 
 export { app as AppRouter };

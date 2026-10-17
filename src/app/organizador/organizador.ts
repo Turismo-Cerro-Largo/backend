@@ -6,6 +6,7 @@ import { bodyLimitado } from "../../middleware/Limit.js";
 import { VerificarSessionRol } from "../../middleware/Session.js";
 import { camposPerfil } from "./organizador.consts.js";
 import { datosPerfil, organizador_estado_scheme } from "./organizador.scheme.js";
+import { EventosRoute } from "./eventos.js";
 import type { EstadoOrganizador } from "../../configuracion/generated/prisma/enums.js";
 
 const app = new Hono();
@@ -50,9 +51,7 @@ app.put("/", VerificarSessionRol(["ORGANIZADOR"]), bodyLimitado(8, "KB"), async 
 	);
 });
 
-/**
- * Administrador
- */
+app.route("/", EventosRoute);
 
 app.get("/lista", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
 	if (
@@ -72,7 +71,6 @@ app.get("/lista", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
 	);
 });
 
-// Ficha completa para revisión administrativa. Nunca expone el hash de contraseña.
 app.get("/:id", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
 	const id = Number(c.req.param("id"));
 	if (!Number.isSafeInteger(id) || id < 1) throw new BadRequestError();
