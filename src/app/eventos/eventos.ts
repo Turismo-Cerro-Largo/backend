@@ -138,7 +138,7 @@ app.post(
 	"/",
 	VerificarSessionRol(["ORGANIZADOR"]),
 	bodyLimitado(20, "MB"),
-	ArchivosPublicos(),
+	ArchivosPublicos(["jpg", "jpeg", "png", "webp"], 8),
 	async (c) => {
 		try {
 			if (!(await esta_aprobado(Number(c.get("sesion").id)))) throw new UnauthorizedError();
@@ -188,7 +188,7 @@ app.put(
 	"/:id",
 	VerificarSessionRol(["ORGANIZADOR"]),
 	bodyLimitado(20, "MB"),
-	ArchivosPublicos(),
+	ArchivosPublicos(["jpg", "jpeg", "png", "webp"], 8),
 	async (c) => {
 		try {
 			if (!(await esta_aprobado(Number(c.get("sesion").id)))) throw new UnauthorizedError();
