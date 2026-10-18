@@ -7,7 +7,6 @@ import { VerificarSessionRol } from "../../middleware/Session.js";
 import { camposPerfil } from "./organizador.consts.js";
 import { datosPerfil, organizador_estado_scheme } from "./organizador.scheme.js";
 import { EventosRoute } from "./eventos.js";
-import type { EstadoOrganizador } from "../../configuracion/generated/prisma/enums.js";
 
 const app = new Hono();
 
@@ -62,7 +61,7 @@ app.get("/lista", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
 
 	return c.json(
 		await prisma.organizador.findMany({
-			where: c.req.query("estado") ? { estado: c.req.query("estado") as EstadoOrganizador } : {},
+			where: c.req.query("estado") ? { estado: c.req.query("estado") } : {},
 			skip: Number(c.req.query("offset") ?? 0),
 			take: Math.min(Number(c.req.query("limit") ?? 10), 50),
 			orderBy: { creado_en: "desc" },
