@@ -1,5 +1,5 @@
 
- // auto/auto.js
+// auto/auto.js
 
 import { hash } from '@node-rs/argon2';
 import { prisma } from './../src/configuracion/db.js';
@@ -73,6 +73,7 @@ async function main() {
       lugar_evento: 'Fraile Muerto, Club Uruguay',
       latitud: -32.5125066,
       longitud: -54.5233061,
+      estado: 'PUBLICADO',
       es_gratuito: true,
       precio: null,
       contacto: '098123456',
@@ -85,6 +86,7 @@ async function main() {
       inicio: '2026-12-04T11:00:00.000Z',
       fin: '2026-12-06T00:00:00.000Z',
       lugar_evento: 'Río Branco, Gimnasio Municipal',
+      estado: 'PUBLICADO',
       latitud: -32.5980074,
       longitud: -53.3895605,
       es_gratuito: false,
@@ -97,6 +99,7 @@ async function main() {
       titulo: 'Feria de Artesanos',
       descripcion: 'Este 24 de diciembre, la Plaza Independencia de Melo, Cerro Largo, se llena de creatividad, tradición y espíritu navideño con una nueva edición de la Feria del Artesano.\n\nDisfrutá de una hermosa jornada recorriendo puestos de artesanos locales, donde encontrarás productos hechos a mano, artesanías únicas, decoraciones, accesorios y regalos especiales para esta Navidad.',
       inicio: '2026-12-24T20:00:00.000Z',
+      estado: 'PENDIENTE_REVISION',
       fin: '2026-12-25T00:30:00.000Z',
       lugar_evento: 'Melo, Plaza Independencia',
       latitud: -32.3681063,
@@ -112,6 +115,7 @@ async function main() {
       descripcion: 'La Cooperativa de Vivienda COVIMEL invita a la comunidad a participar de una jornada solidaria que tiene como objetivo recaudar fondos para apoyar el proyecto habitacional de la cooperativa.\n\nEste evento busca fomentar la unión, la colaboración y el compromiso entre vecinos y familias, trabajando juntos para alcanzar el sueño de contar con una vivienda propia.\n\nFecha: 15 de enero de 2027.\n\n¡Tu colaboración es muy importante! Cada aporte nos acerca un paso más a cumplir nuestro objetivo.\n\nCOVIMEL: Unidos por un mismo sueño.',
       inicio: '2027-01-15T18:00:00.000Z',
       fin: '2027-01-16T01:00:00.000Z',
+      estado: 'PUBLICADO',
       lugar_evento: 'Aceguá',
       latitud: -31.8709592,
       longitud: -54.1625389,
@@ -127,6 +131,7 @@ async function main() {
       // Horario no indicado en el afiche.
       // Se guarda provisionalmente a las 00:00.
       inicio: '2026-12-23T00:00:00-03:00',
+      estado: 'PUBLICADO',
       fin: null,
       lugar_evento: 'Plaza Constitución de Melo',
       latitud: null,
@@ -289,7 +294,6 @@ async function main() {
           ...datosEvento,
           inicio: new Date(inicio),
           fin: fin ? new Date(fin) : null,
-          estado: 'PUBLICADO',
           id_categoria: categoria.id,
           id_organizador: organizador.id
         }
