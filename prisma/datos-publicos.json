@@ -1,0 +1,234 @@
+{
+  "formato": "cerro-largo-datos-publicos-v1",
+  "nota": "Datos de demostración PUBLICADOS. Revisar antes de compartir: incluyen información visible públicamente, como contactos de eventos y lugares.",
+  "categorias": [
+    {
+      "nombre": "Alojamiento",
+      "descripcion": "Hoteles, hostales, posadas y hospedajes."
+    },
+    {
+      "nombre": "Restaurantes",
+      "descripcion": "Restaurantes, cafeterías y gastronomía local."
+    },
+    {
+      "nombre": "Parques/Naturaleza",
+      "descripcion": "Parques, reservas naturales y espacios al aire libre."
+    },
+    {
+      "nombre": "Cultura",
+      "descripcion": "Museos, patrimonio histórico y actividades culturales."
+    },
+    {
+      "nombre": "Eventos Sociales",
+      "descripcion": "Ferias, festivales, fiestas y encuentros sociales."
+    },
+    {
+      "nombre": "Playas",
+      "descripcion": "Playas y espacios de recreación junto al agua."
+    },
+    {
+      "nombre": "Deportes",
+      "descripcion": "Actividades y espacios deportivos."
+    }
+  ],
+  "organizadores": [
+    {
+      "clave": "1",
+      "nombre": "organizador"
+    }
+  ],
+  "ubicaciones": [
+    {
+      "nombre": "MERCADO DON FRANCISCO",
+      "descripcion": "El ex Mercado Municipal de Melo, Don Francisco, fue transformado en un moderno mercado gastronómico, cultural y comercial. El nuevo Mercado conserva su nombre y apuesta a revitalizar el corazón de la ciudad",
+      "direccion": "18 de Julio esquina Batlle y Ordóñez",
+      "localidad": "Melo",
+      "telefono": "092 590 599",
+      "sitio_web": "https://www.instagram.com/mercadodonfranciscomelo/?hl=es",
+      "horario": "domingo\tCerrado lunes\t8 a. m.–8 p. m. martes\t8 a. m.–8 p. m. miércoles\t8 a. m.–8 p. m. jueves\t8 a. m.–12 a. m. viernes\t8 a. m.–8 p. m. sábado\t8 a. m.–8 p. m",
+      "latitud": -32.370649,
+      "longitud": -54.167844,
+      "categoria": "Restaurantes",
+      "recursos": []
+    },
+    {
+      "nombre": "Restaurante La Reuda",
+      "descripcion": "ᴀʟᴍᴜᴇʀᴢᴏꜱ, ᴍᴇʀɪᴇɴᴅᴀꜱ ʏ ᴄᴇɴᴀꜱ. ᴇʟ ʟᴜɢᴀʀ ᴘᴀʀᴀ ᴛᴏᴅᴏꜱ ᴛᴜꜱ ᴍᴏᴍᴇɴᴛᴏꜱ, ᴅᴇꜱᴅᴇ 𝟏𝟗𝟕𝟔",
+      "direccion": "Justino Muniz y Del Pilar",
+      "localidad": "Melo",
+      "telefono": "𝟦𝟨𝟦𝟤𝟢𝟣𝟦𝟤",
+      "sitio_web": "https://www.facebook.com/pages/La-Rueda-Melo/324207837679657?_rdr",
+      "horario": "Martes a Domingo",
+      "latitud": -32.374177,
+      "longitud": -54.170389,
+      "categoria": "Restaurantes",
+      "recursos": []
+    },
+    {
+      "nombre": "Restaurant &Parrilla Galpón de piedra",
+      "descripcion": "Parrillada y Restaurante",
+      "direccion": "Calle 512 Nº 355, Aceguá",
+      "localidad": "Acegua",
+      "telefono": "+55 53 99946-0598",
+      "sitio_web": "https://www.instagram.com/galpon_de_piedra/",
+      "horario": "Martes a Domingo 🕰️Horario: 10:00 a 18:00",
+      "latitud": -31.866396,
+      "longitud": -54.164544,
+      "categoria": "Restaurantes",
+      "recursos": []
+    },
+    {
+      "nombre": "Hotel Juana",
+      "descripcion": "Cuentas con suelo de parquet, paredes de ladrillo a la vista, Smart TV, Wi-Fi gratis, aire acondicionado y calefacción. Incluye opciones estándar, superiores y suites (algunas con jacuzzi)",
+      "direccion": "Ruta 8 km 402, Melo",
+      "localidad": "Melo",
+      "telefono": "092 976 920.",
+      "sitio_web": "https://www.instagram.com/hotel.juana.melo/",
+      "horario": "",
+      "latitud": -32.344404,
+      "longitud": -54.167133,
+      "categoria": "Alojamiento",
+      "recursos": []
+    },
+    {
+      "nombre": "Posada San José de Lucas",
+      "descripcion": "Dispone de 6 habitaciones dobles (3 de ellas en suite y 3 con baños compartidos)",
+      "direccion": "A unos 4 km del centro de Tupambaé",
+      "localidad": "Tupambae",
+      "telefono": "+598 91 502 405",
+      "sitio_web": "https://www.instagram.com/posadasanjosedelucas/",
+      "horario": "",
+      "latitud": -32.85853,
+      "longitud": -54.801112,
+      "categoria": "Alojamiento",
+      "recursos": []
+    },
+    {
+      "nombre": "Hotel Laguna Merin",
+      "descripcion": "El Hotel Laguna Merín es un tradicional alojamiento ubicado en el balneario Lago Merín, en el departamento de Cerro Largo, Uruguay",
+      "direccion": "Calle 11 y Calle 18",
+      "localidad": "Laguna Merin",
+      "telefono": "4679 8033",
+      "sitio_web": "https://hotellagunamerin.com.uy",
+      "horario": "",
+      "latitud": -32.744958,
+      "longitud": -53.260201,
+      "categoria": "Alojamiento",
+      "recursos": []
+    },
+    {
+      "nombre": "BIOPARQUE",
+      "descripcion": "El Bioparque de Melo es uno de los puntos de mayor atractivo de la capital departamental.",
+      "direccion": "Frente al Parque Rivera, Ruta 26",
+      "localidad": "Melo",
+      "telefono": "4642 9880",
+      "sitio_web": "",
+      "horario": "",
+      "latitud": -32.366483,
+      "longitud": -54.187805,
+      "categoria": "Parques/Naturaleza",
+      "recursos": []
+    },
+    {
+      "nombre": "Los miradores",
+      "descripcion": "Histórico casco de estancia ubicado en el departamento de Cerro Largo, Uruguay, famoso por ser escenario de cruentos enfrentamientos entre el caudillo blanco Justino Muñiz y los seguidores de Aparicio Saravia en 1896",
+      "direccion": "kilómetro 365 de la Ruta 7",
+      "localidad": "Bañado de Medina",
+      "telefono": "",
+      "sitio_web": "",
+      "horario": "",
+      "latitud": -32.488092,
+      "longitud": -54.479076,
+      "categoria": "Cultura",
+      "recursos": []
+    },
+    {
+      "nombre": "Parque Rivera",
+      "descripcion": "El Parque General Fructuoso Rivera, es un parque de la ciudad de Melo en el departamento de Cerro Largo",
+      "direccion": "",
+      "localidad": "Melo",
+      "telefono": "098 614 321",
+      "sitio_web": "",
+      "horario": "",
+      "latitud": -32.370131,
+      "longitud": -54.188316,
+      "categoria": "Parques/Naturaleza",
+      "recursos": []
+    },
+    {
+      "nombre": "Casa Juana de Ibarbourou",
+      "descripcion": "La casa está ubicada en la calle Treinta y Tres 317, en la ciudad de Melo. Juana de Ibarbourou vivió aquí su infancia y su juventud.",
+      "direccion": "Treinta y Tres 317",
+      "localidad": "Melo",
+      "telefono": "4644 5740",
+      "sitio_web": "",
+      "horario": "",
+      "latitud": -32.376081,
+      "longitud": -54.167732,
+      "categoria": "Cultura",
+      "recursos": []
+    }
+  ],
+  "eventos": [
+    {
+      "titulo": "38ª edición del Raid del Club Uruguay de Fraile Muerto",
+      "descripcion": "Disfrutá de una jornada llena de adrenalina, cultura y diversión con una nueva edición del Raid Hípico y Baile de Raid, organizado en el Club Uruguay de Fraile Muerto, Cerro Largo.",
+      "inicio": "2026-11-13T16:00:00.000Z",
+      "fin": "2026-11-15T23:00:00.000Z",
+      "lugar_evento": "Fraile Muerto, Club Uruguay",
+      "latitud": -32.5125066,
+      "longitud": -54.5233061,
+      "es_gratuito": true,
+      "precio": null,
+      "contacto": "098123456",
+      "categoria": "Eventos Sociales",
+      "organizador_clave": "1",
+      "recursos": []
+    },
+    {
+      "titulo": "Encuentro Futbol Sala Internacional",
+      "descripcion": "Viví una jornada única con equipos internaciones de fútbol de salón, partidos de alto nivel, emoción de principio a fin y un gran ambiente para toda la familia",
+      "inicio": "2026-12-04T11:00:00.000Z",
+      "fin": "2026-12-06T00:00:00.000Z",
+      "lugar_evento": "Fraile Muerto, Gimnasio Municipal",
+      "latitud": -32.5980074,
+      "longitud": -53.3895605,
+      "es_gratuito": false,
+      "precio": 100,
+      "contacto": "098654987",
+      "categoria": "Deportes",
+      "organizador_clave": "1",
+      "recursos": []
+    },
+    {
+      "titulo": "Feria de Artesanos",
+      "descripcion": "Este 24 de diciembre, la Plaza Independencia de Melo, Cerro Largo, se llena de creatividad, tradición y espíritu navideño con una nueva edición de la Feria del Artesano.\r\n\r\nDisfrutá de una hermosa jornada recorriendo puestos de artesanos locales, donde encontrarás productos hechos a mano, artesanías únicas, decoraciones, accesorios y regalos especiales para esta Navidad.",
+      "inicio": "2026-12-24T20:00:00.000Z",
+      "fin": "2026-12-25T00:30:00.000Z",
+      "lugar_evento": "Melo, PLAZA INDEPENDENCIA",
+      "latitud": -32.3681063,
+      "longitud": -54.1701136,
+      "es_gratuito": true,
+      "precio": null,
+      "contacto": null,
+      "categoria": "Eventos Sociales",
+      "organizador_clave": "1",
+      "recursos": []
+    },
+    {
+      "titulo": "Beneficio COVIMEL",
+      "descripcion": "La Cooperativa de Vivienda COVIMEL invita a la comunidad a participar de una jornada solidaria que tiene como objetivo recaudar fondos para apoyar el proyecto habitacional de la cooperativa.\r\n\r\nEste evento busca fomentar la unión, la colaboración y el compromiso entre vecinos y familias, trabajando juntos para alcanzar el sueño de contar con una vivienda propia.\r\n📅 Fecha: 15 de enero de 2026.\r\n\r\n🤝 ¡Tu colaboración es muy importante! Cada aporte nos acerca un paso más a cumplir nuestro objetivo.\r\n\r\n💚 COVIMEL: Unidos por un mismo sueño.",
+      "inicio": "2027-01-15T18:00:00.000Z",
+      "fin": "2027-01-16T01:00:00.000Z",
+      "lugar_evento": "Aceguá",
+      "latitud": -31.8709592,
+      "longitud": -54.1625389,
+      "es_gratuito": true,
+      "precio": null,
+      "contacto": "097123654",
+      "categoria": "Eventos Sociales",
+      "organizador_clave": "1",
+      "recursos": []
+    }
+  ]
+}
