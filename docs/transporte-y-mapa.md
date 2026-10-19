@@ -2,7 +2,7 @@
 
 Se reutilizan EmpresaTransporte y HorarioOmnibus: no se modificó el esquema ni se agregaron migraciones.
 
-- GET /api/horarios-omnibus: solo PUBLICADO, filtros exactos origen/destino, paginación de 12, empresa y contacto. Opciones de filtros obtenidas de recorridos publicados. Las columnas TIME se serializan como HH:mm sin convertirlas por zona horaria.
+- GET /api/transporte/horarios (alias /api/horarios-omnibus): solo PUBLICADO, filtros exactos origen/destino, paginación de 12, empresa y contacto. Opciones de filtros obtenidas de recorridos publicados. Las columnas TIME se serializan como HH:mm sin convertirlas por zona horaria.
 - GET /api/mapa/lugares: solo ubicaciones PUBLICADO, busca nombre/localidad/categoría, devuelve coordenadas y datos mínimos; máximo 500 con aviso para afinar búsqueda.
 - Ambos endpoints son de lectura pública y no requieren cuenta. La administración de estos registros sigue siendo una responsabilidad del backend administrativo.
 

@@ -1,3 +1,5 @@
+import { Hono } from "hono";
+import { crear_sesion } from "../src/middleware/Session.js";
 import 'dotenv/config';
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { randomUUID } from 'node:crypto';
@@ -91,4 +93,11 @@ describe.skipIf(!aislada)('catálogo público: fechas, navegación y medios', ()
       expect((await app.request('/api/horarios-omnibus?pagina=-1')).status).toBe(400);
     } finally {await prisma.empresaTransporte.delete({where:{id:empresa.id}});}
   });
+  it('permite la vista previa privada al organizador dueño y la niega al público',async()=>{
+    const helper=new Hono();helper.get('/',async c=>{await crear_sesion(c,{id:org,tipo:'organizador',rol:'ORGANIZADOR'});return c.text('ok');});
+    const cookie=(await helper.request('/')).headers.get('set-cookie')!.split(';')[0]!;
+    expect((await app.request(`/api/recursos/${privado}`)).status).toBe(404);
+    expect((await app.request(`/api/recursos/${privado}`,{headers:{cookie}})).status).toBe(200);
+  });
+
 });

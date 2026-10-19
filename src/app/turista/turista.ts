@@ -1,3 +1,4 @@
+import { origenesPermitidos } from "../../middleware/Origen.js";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { prisma } from "../../configuracion/db.js";
@@ -52,11 +53,7 @@ app.use("*", async (c, next) => {
 	if (usuario.rol !== "TURISTA") throw new ForbiddenError();
 	c.set("turistaId", id);
 	if (!["GET", "HEAD", "OPTIONS"].includes(c.req.method)) {
-		const permitidos = (
-			process.env.TURISTA_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173"
-		)
-			.split(",")
-			.map((s) => s.trim());
+		const permitidos = origenesPermitidos();
 		const origen = c.req.header("origin");
 		if (!origen || !permitidos.includes(origen)) throw new ForbiddenError("Origen no autorizado.");
 	}

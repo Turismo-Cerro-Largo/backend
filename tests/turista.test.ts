@@ -15,6 +15,7 @@ const aislada =
 describe.skipIf(!aislada)("panel de turista: integración con MySQL", () => {
 	const marca = randomUUID().slice(0, 8);
 	const email = `turista.${marca}@gmail.com`;
+	let orgId: number;
 	let usuarioId: number,
 		otroId: number,
 		adminId: number,
@@ -99,7 +100,8 @@ describe.skipIf(!aislada)("panel de turista: integración con MySQL", () => {
 		cookie = await sesion(usuarioId);
 		otraCookie = await sesion(otroId);
 		adminCookie = await sesion(adminId);
-		orgCookie = await sesion(usuarioId, "ORGANIZADOR", "organizador");
+		orgId=(await prisma.organizador.create({data:{email:`sesionorg.${marca}@gmail.com`,nombre_organizacion:'Prueba',rut_ruc:'sesion-'+marca,telefono:'099123456',passhash:await hash('PruebaTurista2026')}})).id;
+        orgCookie = await sesion(orgId, "ORGANIZADOR", "organizador");
 	}, 30000);
 	afterAll(async () => {
 		if (usuarioId) {
@@ -116,6 +118,7 @@ describe.skipIf(!aislada)("panel de turista: integración con MySQL", () => {
 			await prisma.ubicacion.deleteMany({ where: { id_categoria: categoriaId } });
 			await prisma.categoria.delete({ where: { id: categoriaId } });
 		}
+		if(orgId)await prisma.organizador.delete({where:{id:orgId}});
 		await prisma.$disconnect();
 	});
 	it("las categorías públicas excluyen lugares ocultos", async () => {
@@ -156,7 +159,7 @@ describe.skipIf(!aislada)("panel de turista: integración con MySQL", () => {
 		const form = new FormData();
 		form.set("email", email);
 		form.set("password", "PruebaTurista2026");
-		const res = await app.request("/api/auth/login", { method: "POST", body: form });
+		const res = await app.request("/api/auth/login", { method: "POST", headers:{origin}, body: form });
 		expect(res.status).toBe(200);
 		expect(res.headers.get("set-cookie")).toContain("session=");
 	});

@@ -1,8 +1,7 @@
-import { Hono } from 'hono';
+import type { Context } from 'hono';
 import { prisma } from '../../configuracion/db.js';
 import { BadRequestError } from '../../configuracion/AppError.js';
-const app = new Hono();
-app.get('/', async c => {
+export const consultarHorarios = async (c: Context) => {
     const origen = (c.req.query('origen') || '').trim();
     const destino = (c.req.query('destino') || '').trim();
     const pagina = Number(c.req.query('pagina') || 1);
@@ -15,5 +14,4 @@ app.get('/', async c => {
     ]);
     return c.json({horarios:horarios.map(h=>({...h,hora_salida:h.hora_salida.toISOString().slice(11,16),hora_llegada:h.hora_llegada?.toISOString().slice(11,16) || null})),total,pagina,porPagina:12,
         origenes:[...new Set(rutas.map(r=>r.origen))].sort(),destinos:[...new Set(rutas.map(r=>r.destino))].sort()});
-});
-export { app as TransporteRoute };
+};

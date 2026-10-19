@@ -1,3 +1,4 @@
+import { origenesPermitidos } from "../../middleware/Origen.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { bodyLimit } from "hono/body-limit";
@@ -17,9 +18,7 @@ app.use("*", async (c, next) => {
 	const usuario = await prisma.usuario.findUnique({ where: { id }, select: { rol: true } });
 	if (usuario?.rol !== "ADMINISTRADOR") throw new ForbiddenError();
 	if (c.req.method !== "GET") {
-		const origenes = (process.env.TURISTA_ORIGINS || "http://localhost:5173,http://127.0.0.1:5173")
-			.split(",")
-			.map((s) => s.trim());
+		const origenes = origenesPermitidos();
 		if (!origenes.includes(c.req.header("origin") || ""))
 			throw new ForbiddenError("Origen no autorizado.");
 	}

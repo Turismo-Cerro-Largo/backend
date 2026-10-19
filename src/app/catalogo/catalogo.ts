@@ -1,4 +1,5 @@
-import { Hono } from "hono";
+import { recursoVisible } from "./acceso-recursos.js";
+import { type Context, Hono } from "hono";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { createReadStream } from "node:fs";
@@ -20,7 +21,7 @@ app.get('/mapa/lugares', async c => {
   return c.json({lugares:lugares.slice(0,500),limitado:lugares.length>500});
 });
 const seleccionEvento = {
-  id: true, titulo: true, descripcion: true, inicio: true, fin: true,
+  id: true, titulo: true, descripcion: true, inicio: true, fin: true, categoria: true,
   lugar_evento: true, latitud: true, longitud: true, es_gratuito: true,
   precio: true, contacto: true,
   recursos: { orderBy: { orden: "asc" as const }, select: { id: true, tipo: true, descripcion: true } },
@@ -37,9 +38,12 @@ function serializarEvento<T extends { recursos: { id: number; tipo: string; desc
   return { ...e, recursos: e.recursos.map(r => ({ ...r, uri: `/api/recursos/${r.id}` })) };
 }
 
-app.get("/eventos", async (c) => {
+export const listarEventos = async (c: Context) => {
   const limit = Number(c.req.query("limit") || 50);
   if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new BadRequestError();
+  const categorias = (c.req.queries("categoria") || []).flatMap(v=>v.split(",")).map(Number);
+  const offset = c.req.query("offset") === undefined ? undefined : Number(c.req.query("offset"));
+  if (categorias.some(n=>!Number.isSafeInteger(n)||n<1) || (offset !== undefined && (!Number.isSafeInteger(offset)||offset<0||offset>1000000))) throw new BadRequestError();
   const desde = fechaFiltro(c.req.query("desde"));
   const hasta = fechaFiltro(c.req.query("hasta"), true);
   const buscar = (c.req.query("buscar") || "").trim();
@@ -47,43 +51,36 @@ app.get("/eventos", async (c) => {
   const pagina = Number(c.req.query("pagina") || 1);
   if (!Number.isInteger(pagina) || pagina < 1 || pagina > 10000) throw new BadRequestError();
   const eventos = await prisma.evento.findMany({
-    where: { estado: "PUBLICADO", AND: [
+    where: { estado: "PUBLICADO", ...(categorias.length ? {id_categoria:{in:categorias}} : {}), AND: [
       ...(hasta ? [{ inicio: { lte: hasta } }] : []),
       ...(desde ? [{ OR: [{ fin: { gte: desde } }, { fin: null, inicio: { gte: desde } }] }] : []),
       ...(buscar ? [{ OR: [{ titulo: { contains: buscar } }, { lugar_evento: { contains: buscar } }] }] : []),
     ] },
     take: limit,
-    skip: (pagina - 1) * limit,
+    skip: offset ?? (pagina - 1) * limit,
     orderBy: [{ inicio: "asc" }, { id: "asc" }],
     select: seleccionEvento,
   });
   return c.json(eventos.map(serializarEvento));
-});
+};
 
-app.get("/eventos/:id", async (c) => {
-  const id = idValido(c.req.param("id"));
+export const detalleEvento = async (c: Context) => {
+  const id = idValido(c.req.param("id") || "");
   if (!id) throw new NotFoundError();
   const evento = await prisma.evento.findFirst({ where: { id, estado: "PUBLICADO" }, select: seleccionEvento });
   if (!evento) throw new NotFoundError("Evento no disponible.");
   return c.json(serializarEvento(evento));
-});
+};
 
 // Resolver únicamente imágenes registradas y asociadas a contenido publicado.
 // Nunca aceptar rutas de archivos proporcionadas por la petición.
 app.get("/recursos/:id", async (c) => {
-  const id = idValido(c.req.param("id"));
+  const id = idValido(c.req.param("id") || "");
   if (!id) throw new NotFoundError();
-  const recurso = await prisma.recurso.findFirst({
-    where: { id, id_comentario: null,
-      OR: [
-        { id_evento: null, ubicacion: { is: { estado: "PUBLICADO" } } },
-        { id_ubicacion: null, evento: { is: { estado: "PUBLICADO" } } },
-      ] },
-    select: { uri: true, tipo: true },
-  });
+  const recurso = await recursoVisible(c, {id});
   if (!recurso) throw new NotFoundError();
   const evento = /^\/api\/organizador\/eventos\/media\/([0-9a-f-]{36}\.(?:jpg|png|webp))$/.exec(recurso.uri);
-  const publico = /^\/publicos\/([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp))$/.exec(recurso.uri);
+  const publico = /^(?:\/api\/archivos)?\/publicos\/([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp))$/.exec(recurso.uri);
   const demo = /^\/publico\/demo\/([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp|mp4))$/.exec(recurso.uri);
   const archivo = evento ? path.join(process.cwd(), "publico", "eventos", evento[1])
     : publico ? path.join(process.cwd(), "publicos", publico[1])
