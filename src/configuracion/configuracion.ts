@@ -1,3 +1,4 @@
+import { verificarOrigen, origenesPermitidos } from "../middleware/Origen.js";
 import type { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -11,7 +12,8 @@ import { AppError } from "./AppError.js";
 export const Configuracion = (app: Hono) => {
 	app.use("*", logger());
 
-	app.use("*", cors());
+	app.use("*", cors({origin: origin => origenesPermitidos().includes(origin) ? origin : undefined,credentials:true}));
+ app.use("*", verificarOrigen);
 
 	app.use(
 		"*",

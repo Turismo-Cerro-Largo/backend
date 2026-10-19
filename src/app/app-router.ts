@@ -1,3 +1,8 @@
+import { TuristaRoute } from "./turista/turista.js";
+import { LugaresRoute } from "./turista/lugares.js";
+import { ModeracionValoracionesRoute } from "./turista/moderacion.js";
+import { PublicoRoute } from "./catalogo/catalogo.js";
+import { consultarHorarios } from "./catalogo/transporte.js";
 // src/app/app-router.ts
 import { Hono } from "hono";
 import { AuthRoute } from "./auth/auth.js";
@@ -30,4 +35,9 @@ app.route("/admin/usuarios", AdminUsuariosRoute);
 app.route("/admin/comentarios", AdminComentariosRoute);
 app.route("/ubicaciones", UbicacionesRoute);
 
+app.route("/turista", TuristaRoute);
+app.route("/lugares", LugaresRoute);
+app.route("/moderacion-valoraciones", ModeracionValoracionesRoute);
+app.get("/horarios-omnibus", consultarHorarios); // Compatibilidad de enlaces previos.
+app.route("/", PublicoRoute);
 export { app as AppRouter };

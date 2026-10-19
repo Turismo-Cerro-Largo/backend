@@ -1,3 +1,4 @@
+import { listarEventos, detalleEvento } from "../catalogo/catalogo.js";
 // src/app/eventos/eventos.ts
 import { Hono } from "hono";
 import { prisma } from "../../configuracion/db.js";
@@ -15,29 +16,7 @@ const esta_aprobado = async (id: number) =>
 		await prisma.organizador.findFirst({ where: { id, estado: "APROBADO" }, select: { id: true } }),
 	);
 
-app.get("/", async (c) => {
-	const categorias = (c.req.queries("categoria") ?? [])
-		.flatMap((valor) => valor.split(","))
-		.map(Number);
-
-	if (categorias.some((id) => !Number.isInteger(id) || id < 1)) throw new BadRequestError();
-
-	const eventos = await prisma.evento.findMany({
-		where: {
-			estado: "PUBLICADO",
-			...(categorias.length > 0 ? { id_categoria: { in: categorias } } : {}),
-		},
-		skip: Number(c.req.query("offset") ?? 0),
-		take: Math.min(Number(c.req.query("limit") ?? 10), 50),
-		orderBy: { inicio: "asc" },
-		include: {
-			categoria: true,
-			recursos: { select: { uri: true, tipo: true, orden: true }, orderBy: { orden: "asc" } },
-		},
-	});
-
-	return c.json(eventos);
-});
+app.get("/", listarEventos);
 
 app.get("/status", VerificarSessionRol(["ORGANIZADOR"]), async (c) => {
 	if (!(await esta_aprobado(Number(c.get("sesion").id)))) throw new UnauthorizedError();
@@ -117,22 +96,7 @@ app.get(
 	},
 );
 
-app.get("/:id", async (c) => {
-	if (!Number.isInteger(Number(c.req.param("id"))) || Number(c.req.param("id")) < 1)
-		throw new BadRequestError();
-
-	const evento = await prisma.evento.findUnique({
-		where: { id: Number(c.req.param("id")) },
-		include: {
-			categoria: true,
-			recursos: { select: { uri: true, tipo: true, orden: true }, orderBy: { orden: "asc" } },
-		},
-	});
-
-	if (!evento) throw new NotFoundError();
-
-	return c.json(evento);
-});
+app.get("/:id", detalleEvento);
 
 app.post(
 	"/",

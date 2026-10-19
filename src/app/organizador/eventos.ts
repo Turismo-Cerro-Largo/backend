@@ -1,3 +1,4 @@
+import { recursoVisible } from "../catalogo/acceso-recursos.js";
 // src/app/organizador/eventos.ts
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -124,13 +125,9 @@ const incluir = {
 app.get('/eventos/media/:nombre', async c => {
   const nombre = c.req.param('nombre');
   if (!/^[0-9a-f-]{36}\.(jpg|png|webp)$/.test(nombre)) throw new NotFoundError();
-  const recurso = await prisma.recurso.findFirst({ where: { uri: `/api/organizador/eventos/media/${nombre}`, tipo: 'IMAGEN', id_evento: { not: null } }, select: { id: true } });
-  if (!recurso) throw new NotFoundError();
-  try {
-    const bytes = await readFile(path.join(process.cwd(), 'publico', 'eventos', nombre));
-    const tipo = nombre.endsWith('.png') ? 'image/png' : nombre.endsWith('.webp') ? 'image/webp' : 'image/jpeg';
-    return new Response(new Uint8Array(bytes), { headers: { 'Content-Type': tipo, 'Cache-Control': 'public, max-age=86400', 'X-Content-Type-Options': 'nosniff' } });
-  } catch { throw new NotFoundError('Imagen no encontrada.'); }
+  const recurso = await recursoVisible(c,{uri:`/api/organizador/eventos/media/${nombre}`});
+  if(!recurso)throw new NotFoundError();
+  return c.redirect(`/api/recursos/${recurso.id}`,307);
 });
 
 app.get('/eventos/categorias', VerificarSessionRol(['ORGANIZADOR']), async c => {

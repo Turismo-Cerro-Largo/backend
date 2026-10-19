@@ -44,8 +44,8 @@ const fechaNacimientoSchema = z
 	});
 
 export const auth_usuario_login_scheem = z.object({
-	email: z.string().min(7).max(45).email().regex(emailRegex),
-	password: z.string().min(8).max(32).regex(passwordRegex),
+ email: z.string().trim().toLowerCase().email().max(254),
+ password: z.string().min(1).max(1024),
 });
 
 export const auth_usuario_register_scheem = z.object({

@@ -8,7 +8,7 @@ const app = new Hono();
 app.get("/", async (c) => {
     const categoria = c.req.query("categoria")?.trim();
 
-    if (!categoria) {
+    if (!categoria || categoria.length > 100) {
         return c.json(
             { error: "Debés indicar una categoría" },
             400
@@ -44,7 +44,7 @@ app.get("/", async (c) => {
                 },
                 take: 1,
                 select: {
-                    uri: true
+                    id: true
                 }
             }
         },
@@ -58,7 +58,7 @@ app.get("/", async (c) => {
             ...lugar,
             latitud: Number(latitud),
             longitud: Number(longitud),
-            imagen: recursos[0]?.uri ?? null
+            imagen: recursos[0] ? `/api/recursos/${recursos[0].id}` : null
         })
     );
 

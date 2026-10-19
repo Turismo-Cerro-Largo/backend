@@ -61,7 +61,7 @@ app.get("/lista", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
 
 	return c.json(
 		await prisma.organizador.findMany({
-			where: c.req.query("estado") ? { estado: c.req.query("estado") } : {},
+			where: c.req.query("estado") ? { estado: c.req.query("estado") as import("../../configuracion/generated/prisma/enums.js").EstadoOrganizador } : {},
 			skip: Number(c.req.query("offset") ?? 0),
 			take: Math.min(Number(c.req.query("limit") ?? 10), 50),
 			orderBy: { creado_en: "desc" },
