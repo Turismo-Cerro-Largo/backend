@@ -39,3 +39,7 @@ privado
 publico
 static
 src/configuracion/generated
+# Configuración local y buzón de pruebas
+.env*
+!.env.example
+.local-mail/

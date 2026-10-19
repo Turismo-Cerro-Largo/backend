@@ -243,14 +243,16 @@ app.get("/check", async (c: Context) => {
 
 	const usuario = await prisma.usuario.findUnique({
 		where: { id: Number(id) },
-		select: { id: true, nombres: true, rol: true },
+		select: { id: true, nombres: true, rol: true, foto_perfil: true },
 	});
 
 	if (!usuario) {
 		throw new UnauthorizedError();
 	}
 
-	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres });
+	c.header("Cache-Control", "private, no-store");
+	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres,
+        foto: usuario.rol === "TURISTA" && usuario.foto_perfil ? `/api/turista/foto?v=${encodeURIComponent(usuario.foto_perfil)}` : null });
 });
 
 

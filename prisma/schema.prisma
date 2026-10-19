@@ -13,6 +13,8 @@ model Usuario {
   apellidos        String    @db.VarChar(100)
   email            String    @unique
   departamento     String?   @db.VarChar(100)
+  localidad        String?   @db.VarChar(120)
+  foto_perfil      String?   @db.VarChar(255)
   fecha_nacimiento DateTime? @db.Date
   telefono         String?   @db.VarChar(30)
   genero           Genero?
