@@ -80,7 +80,7 @@ app.get("/recursos/:id", async (c) => {
   const recurso = await recursoVisible(c, {id});
   if (!recurso) throw new NotFoundError();
   const evento = /^\/api\/organizador\/eventos\/media\/([0-9a-f-]{36}\.(?:jpg|png|webp))$/.exec(recurso.uri);
-  const publico = /^(?:\/api\/archivos)?\/publicos\/([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp))$/.exec(recurso.uri);
+  const publico = /^(?:\/api\/archivos)?\/publicos\/((?:seed\/)?[a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp|mp4))$/.exec(recurso.uri);
   const demo = /^\/publico\/demo\/([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp|mp4))$/.exec(recurso.uri);
   const archivo = evento ? path.join(process.cwd(), "publico", "eventos", evento[1])
     : publico ? path.join(process.cwd(), "publicos", publico[1])

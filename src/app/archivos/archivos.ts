@@ -19,6 +19,15 @@ app.get('/publicos/:archivo', async c => {
  return c.redirect(`/api/recursos/${recurso.id}`,307);
 });
 
+app.get('/publicos/seed/:archivo', async c => {
+ const archivo=c.req.param('archivo');
+ if(!/^[a-zA-Z0-9_-]+\.(jpg|jpeg|png|webp|mp4)$/.test(archivo))throw new NotFoundError();
+ const uri=`/api/archivos/publicos/seed/${archivo}`;
+ const recurso=await recursoVisible(c,{uri:{in:[uri,`/publicos/seed/${archivo}`]}});
+ if(!recurso)throw new NotFoundError();
+ return c.redirect(`/api/recursos/${recurso.id}`,307);
+});
+
 app.get("/privados/:archivo", VerificarSessionRol(["ORGANIZADOR", "ADMINISTRADOR"]), async (c) => {
 	if (c.req.param("archivo") !== path.basename(c.req.param("archivo"))) throw new BadRequestError();
 
