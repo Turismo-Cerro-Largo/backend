@@ -29,8 +29,6 @@ lerna-debug.log*
 /src/generated/prisma
 *.db
 dist
-pnpm-lock.yaml
-pnpm-workspace.yaml
 vitest.config.js
 
 
@@ -41,3 +39,10 @@ static
 src/configuracion/generated
 publicos
 privados
+# Configuracion privada y buzon local
+.env*
+!.env.example
+.local-mail/
+
+# npm se usa solo como comprobacion auxiliar; el proyecto usa pnpm
+package-lock.json

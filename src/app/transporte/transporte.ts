@@ -1,3 +1,4 @@
+import { consultarHorarios } from "../catalogo/transporte.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { prisma } from "../../configuracion/db.js";
@@ -114,17 +115,7 @@ app.delete("/empresas/:id", admin, async (c) => {
 });
 
 // Lista pública muestra SOLO horarios publicados. Admin puede ver todos con ?admin=1.
-app.get("/horarios", async (c) => {
-	const isAdmin = c.req.query("admin") === "1";
-	if (isAdmin)
-		return c.json({ error: "Usá /horarios/admin para consultar horarios ocultos." }, 400);
-	const horarios = await prisma.horarioOmnibus.findMany({
-		where: { estado: "PUBLICADO" },
-		orderBy: [{ origen: "asc" }, { hora_salida: "asc" }],
-		include: { empresa: { select: { id: true, nombre: true } } },
-	});
-	return c.json({ horarios: horarios.map(out) });
-});
+app.get("/horarios", consultarHorarios);
 app.get("/horarios/admin", admin, async (c) => {
 	const horarios = await prisma.horarioOmnibus.findMany({
 		orderBy: { id: "desc" },

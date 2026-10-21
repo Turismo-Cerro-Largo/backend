@@ -1,3 +1,5 @@
+import { origenRecuperacion } from "./correo.js";
+import { RecuperacionRoute, admitirIntento } from "./recuperacion.js";
 // src/app/auth/auth.ts
 import { hash, verify } from "@node-rs/argon2";
 import { unlink } from "node:fs/promises";
@@ -15,9 +17,10 @@ import {
 	auth_usuario_login_scheem,
 	auth_usuario_register_scheem,
 } from "./auth.schema.js";
-import { crear_sesion } from "../../middleware/Session.js";
+import { crear_sesion, leerSesion } from "../../middleware/Session.js";
 
 const app = new Hono();
+app.route("/recuperacion", RecuperacionRoute);
 async function correoEnUso(email: string) {
 	const [usuario, organizador] = await Promise.all([
 		prisma.usuario.findUnique({ where: { email }, select: { id: true } }),
@@ -32,6 +35,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 
 	// Verificar el formulario
 	const datos = auth_usuario_login_scheem.safeParse(body);
+    if (!admitirIntento('login-global',500) || (datos.success && !admitirIntento('login:'+datos.data.email.toLowerCase(),20))) return c.json({message:'Demasiados intentos. Esperá unos minutos.'},429);
 	if (!datos.success) {
 		throw new BadRequestError();
 	}
@@ -183,18 +187,13 @@ app.get("/google", Google(), async (c: Context) => {
 
 	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol });
 
-	return c.redirect("http://localhost:5173/turista");
+	return c.redirect(origenRecuperacion() + "/");
 });
 
 // verificar session
 app.get("/check", async (c: Context) => {
-	const sesion = await getSignedCookie(c, env.COOKIE_SECRET, "session");
-
-	if (!sesion) {
-		throw new UnauthorizedError();
-	}
-
-	const [tipo, id] = sesion.split(":");
+	const { tipo, id } = await leerSesion(c);
+	c.header("Cache-Control", "private, no-store");
 
 	if (tipo === "organizador") {
 		const organizador = await prisma.organizador.findUnique({
@@ -216,19 +215,21 @@ app.get("/check", async (c: Context) => {
 
 	const usuario = await prisma.usuario.findUnique({
 		where: { id: Number(id) },
-		select: { id: true, nombres: true, rol: true },
+		select: { id: true, nombres: true, rol: true, foto_perfil: true },
 	});
 
 	if (!usuario) {
 		throw new UnauthorizedError();
 	}
 
-	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres });
+	c.header("Cache-Control", "private, no-store");
+	return c.json({ id: usuario.id, rol: usuario.rol, nombre: usuario.nombres,
+        foto: usuario.rol === "TURISTA" && usuario.foto_perfil ? `/api/turista/foto?v=${encodeURIComponent(usuario.foto_perfil)}` : null });
 });
 
 // cerrar session ambos metodos
 // https://hono.dev/docs/api/routing
-app.on(["GET", "POST"], "/logout", async (c: Context) => {
+app.on(["POST"], "/logout", async (c: Context) => {
 	deleteCookie(c, "session", { path: "/" });
 	return c.json({ message: "Exito" }, 200);
 });
