@@ -2,8 +2,8 @@ import { listarEventos, detalleEvento } from "../catalogo/catalogo.js";
 // src/app/eventos/eventos.ts
 import { Hono } from "hono";
 import { prisma } from "../../configuracion/db.js";
-import { BadRequestError, NotFoundError, UnauthorizedError } from "../../configuracion/AppError.js";
-import { VerificarSessionRol } from "../../middleware/Session.js";
+import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
+import { VerificarSessionRolVerificada, RequerirOrganizadorAprobado, RequerirAdministrador } from "../../middleware/Session.js";
 import { eventos_estado_scheme, eventos_formulario_scheme } from "./eventos.scheme.js";
 import { ArchivosPublicos, borrar_publicos } from "../../middleware/Archivos.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
@@ -11,15 +11,10 @@ import type { EstadoEvento } from "../../configuracion/generated/prisma/enums.js
 
 const app = new Hono();
 
-const esta_aprobado = async (id: number) =>
-	Boolean(
-		await prisma.organizador.findFirst({ where: { id, estado: "APROBADO" }, select: { id: true } }),
-	);
-
 app.get("/", listarEventos);
 
-app.get("/status", VerificarSessionRol(["ORGANIZADOR"]), async (c) => {
-	if (!(await esta_aprobado(Number(c.get("sesion").id)))) throw new UnauthorizedError();
+app.get("/status", RequerirOrganizadorAprobado, async (c) => {
+
 
 	const [total, pendientes, publicados, borradores, ultimos] = await Promise.all([
 		prisma.evento.count({ where: { id_organizador: Number(c.get("sesion").id) } }),
@@ -45,13 +40,9 @@ app.get("/status", VerificarSessionRol(["ORGANIZADOR"]), async (c) => {
 
 app.get(
 	"/organizador/:id_organizador",
-	VerificarSessionRol(["ORGANIZADOR", "ADMINISTRADOR"]),
+	VerificarSessionRolVerificada(["ORGANIZADOR", "ADMINISTRADOR"]),
 	async (c) => {
-		if (
-			c.get("sesion").rol !== "ADMINISTRADOR" &&
-			!(await esta_aprobado(Number(c.get("sesion").id)))
-		)
-			throw new UnauthorizedError();
+
 
 		if (
 			!Number.isInteger(Number(c.req.param("id_organizador"))) ||
@@ -100,12 +91,12 @@ app.get("/:id", detalleEvento);
 
 app.post(
 	"/",
-	VerificarSessionRol(["ORGANIZADOR"]),
+	RequerirOrganizadorAprobado,
 	bodyLimitado(20, "MB"),
 	ArchivosPublicos(["jpg", "jpeg", "png", "webp"], 8),
 	async (c) => {
 		try {
-			if (!(await esta_aprobado(Number(c.get("sesion").id)))) throw new UnauthorizedError();
+
 
 			const datos = eventos_formulario_scheme.safeParse(await c.req.parseBody({ all: true }));
 
@@ -150,12 +141,12 @@ app.post(
 
 app.put(
 	"/:id",
-	VerificarSessionRol(["ORGANIZADOR"]),
+	RequerirOrganizadorAprobado,
 	bodyLimitado(20, "MB"),
 	ArchivosPublicos(["jpg", "jpeg", "png", "webp"], 8),
 	async (c) => {
 		try {
-			if (!(await esta_aprobado(Number(c.get("sesion").id)))) throw new UnauthorizedError();
+
 
 			if (!Number.isInteger(Number(c.req.param("id"))) || Number(c.req.param("id")) < 1)
 				throw new BadRequestError();
@@ -216,8 +207,8 @@ app.put(
 	},
 );
 
-app.delete("/:id", VerificarSessionRol(["ORGANIZADOR"]), async (c) => {
-	if (!(await esta_aprobado(Number(c.get("sesion").id)))) throw new UnauthorizedError();
+app.delete("/:id", RequerirOrganizadorAprobado, async (c) => {
+
 
 	if (!Number.isInteger(Number(c.req.param("id"))) || Number(c.req.param("id")) < 1)
 		throw new BadRequestError();
@@ -235,7 +226,7 @@ app.delete("/:id", VerificarSessionRol(["ORGANIZADOR"]), async (c) => {
  * Administrador
  */
 
-app.patch("/:id/estado", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
+app.patch("/:id/estado", RequerirAdministrador, async (c) => {
 	if (!Number.isInteger(Number(c.req.param("id"))) || Number(c.req.param("id")) < 1)
 		throw new BadRequestError();
 

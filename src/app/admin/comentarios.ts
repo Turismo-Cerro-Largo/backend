@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError, NotFoundError, ForbiddenError } from "../../configuracion/AppError.js";
-import { VerificarSessionRol } from "../../middleware/Session.js";
+import { RequerirAdministrador } from "../../middleware/Session.js";
 import type { EstadoComentario } from "../../configuracion/generated/prisma/enums.js";
 
 const app = new Hono();
@@ -21,7 +21,7 @@ const parametro = (v: string | undefined, base: number, max: number) => {
 	return n;
 };
 
-app.use("*", VerificarSessionRol(["ADMINISTRADOR"]));
+app.use("*", RequerirAdministrador);
 app.use("*", async (c, next) => {
 	const sesion = c.get("sesion");
 	const id = Number(sesion.id);

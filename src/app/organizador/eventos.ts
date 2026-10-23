@@ -3,7 +3,7 @@ import { recursoVisible } from "../catalogo/acceso-recursos.js";
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { Hono } from 'hono';
-import { z } from 'zod';
+import { formulario, type Datos } from './eventos.schema.js';
 import {
   BadRequestError,
   ForbiddenError,
@@ -12,29 +12,9 @@ import {
 import { prisma } from '../../configuracion/db.js';
 import { ArchivosPublicos, borrar_publicos } from '../../middleware/Archivos.js';
 import { bodyLimitado } from '../../middleware/Limit.js';
-import { VerificarSessionRol } from '../../middleware/Session.js';
+import { RequerirOrganizadorAprobado } from '../../middleware/Session.js';
 
 const app = new Hono();
-
-const formulario = z.object({
-  titulo: z.string().trim().min(2).max(180),
-  descripcion: z.string().trim().min(5).max(5000),
-  inicio: z.string().refine(s => !Number.isNaN(Date.parse(s)), 'Fecha inválida'),
-  fin: z.string().optional().default(''),
-  id_categoria: z.coerce.number().int().positive(),
-  localidad: z.string().trim().max(120).default(''),
-  direccion: z.string().trim().max(150).default(''),
-  latitud: z.string().default(''),
-  longitud: z.string().default(''),
-  es_gratuito: z.enum(['true', 'false']),
-  precio: z.string().default(''),
-  telefono: z.string().trim().max(30).default(''),
-  correo: z.union([z.literal(''), z.email()]).default(''),
-  redes: z.string().trim().max(80).default(''),
-  accion: z.enum(['borrador', 'revision'])
-});
-
-type Datos = z.infer<typeof formulario>;
 
 function validarDatos(datos: Datos) {
   const inicio = new Date(datos.inicio);
@@ -94,12 +74,7 @@ function validarDatos(datos: Datos) {
 }
 
 function transformarBody(body: Record<string, unknown>) {
-  const objeto: Record<string, string> = {};
-  for (const nombre of ['titulo', 'descripcion', 'inicio', 'fin', 'id_categoria', 'localidad', 'direccion', 'latitud', 'longitud', 'es_gratuito', 'precio', 'telefono', 'correo', 'redes', 'accion']) {
-    const valor = body[nombre];
-    if (typeof valor === 'string') objeto[nombre] = valor;
-  }
-  const parsed = formulario.safeParse(objeto);
+  const parsed = formulario.safeParse(body);
   if (!parsed.success) {
     throw new BadRequestError('Revisá los datos del evento, la categoría, las fechas y el contacto.');
   }
@@ -130,12 +105,12 @@ app.get('/eventos/media/:nombre', async c => {
   return c.redirect(`/api/recursos/${recurso.id}`,307);
 });
 
-app.get('/eventos/categorias', VerificarSessionRol(['ORGANIZADOR']), async c => {
+app.get('/eventos/categorias', RequerirOrganizadorAprobado, async c => {
   const categorias = await prisma.categoria.findMany({ select: { id: true, nombre: true }, orderBy: { nombre: 'asc' } });
   return c.json({ categorias });
 });
 
-app.get('/eventos', VerificarSessionRol(['ORGANIZADOR']), async c => {
+app.get('/eventos', RequerirOrganizadorAprobado, async c => {
   const eventos = await prisma.evento.findMany({
     where: { id_organizador: idOrganizador(c.get('sesion')) },
     include: incluir,
@@ -144,7 +119,7 @@ app.get('/eventos', VerificarSessionRol(['ORGANIZADOR']), async c => {
   return c.json({ eventos });
 });
 
-app.get('/eventos/:id', VerificarSessionRol(['ORGANIZADOR']), async c => {
+app.get('/eventos/:id', RequerirOrganizadorAprobado, async c => {
   const id = Number(c.req.param('id'));
   if (!Number.isInteger(id) || id <= 0) throw new BadRequestError('Identificador inválido.');
   const evento = await prisma.evento.findFirst({ where: { id, id_organizador: idOrganizador(c.get('sesion')) }, include: incluir });
@@ -154,9 +129,9 @@ app.get('/eventos/:id', VerificarSessionRol(['ORGANIZADOR']), async c => {
 
 app.post(
   '/eventos',
-  VerificarSessionRol(['ORGANIZADOR']),
+  RequerirOrganizadorAprobado,
   bodyLimitado(26, 'MB'),
-  ArchivosPublicos(['jpg', 'jpeg', 'png', 'webp'], 5),
+  ArchivosPublicos(['jpg', 'jpeg', 'png', 'webp'], 5, 5),
   async c => {
     const recursos = c.get('recursos');
     if (recursos.length > 5) {
@@ -185,9 +160,9 @@ app.post(
 
 app.put(
   '/eventos/:id',
-  VerificarSessionRol(['ORGANIZADOR']),
+  RequerirOrganizadorAprobado,
   bodyLimitado(26, 'MB'),
-  ArchivosPublicos(['jpg', 'jpeg', 'png', 'webp'], 5),
+  ArchivosPublicos(['jpg', 'jpeg', 'png', 'webp'], 5, 5),
   async c => {
     const recursos = c.get('recursos');
     if (recursos.length > 5) {

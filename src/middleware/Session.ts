@@ -66,36 +66,48 @@ export async function leerSesion(c: Context) {
 		throw new UnauthorizedError();
 	return { tipo: tipo!, id: id!, rol: cuenta.rol };
 }
-type Variables = { sesion: { tipo: string; id: string; rol: string } };
-export const VerificarSession = createMiddleware<{ Variables: Variables }>(async (c, next) => {
-	c.set("sesion", await leerSesion(c));
-	await next();
-});
-export const VerificarSessionRol = (roles: string[]) =>
+type Rol = "TURISTA" | "ORGANIZADOR" | "ADMINISTRADOR";
+type TipoCuenta = "usuario" | "organizador";
+type Sesion = { tipo: string; id: string; rol: string };
+type Variables = { sesion: Sesion; turistaId: number };
+
+// Una sola lectura de sesión por petición; el rol siempre proviene de la base actual.
+const requerirAcceso = (
+	roles?: readonly Rol[],
+	opciones: { tipo?: TipoCuenta; organizadorAprobado?: boolean; privado?: boolean; turista?: boolean } = {},
+) =>
 	createMiddleware<{ Variables: Variables }>(async (c, next) => {
 		const sesion = await leerSesion(c);
-		if (!roles.includes(sesion.rol)) throw new ForbiddenError();
-		c.set("sesion", sesion);
-		await next();
-	});
-export const VerificarSessionRolVerificada = (roles: string[]) =>
-	createMiddleware<{ Variables: Variables }>(async (c, next) => {
-		const sesion = await leerSesion(c);
-		if (!roles.includes(sesion.rol)) throw new ForbiddenError();
+		if (roles && !roles.some((rol) => rol === sesion.rol)) throw new ForbiddenError();
+		if (opciones.tipo && sesion.tipo !== opciones.tipo) throw new ForbiddenError();
 		if (
+			opciones.organizadorAprobado &&
 			sesion.tipo === "organizador" &&
 			!(await prisma.organizador.findFirst({
 				where: { id: Number(sesion.id), estado: "APROBADO" },
 				select: { id: true },
 			}))
-		)
-			throw new ForbiddenError();
+		) throw new ForbiddenError("El organizador aún no está aprobado.");
+		if (opciones.privado) c.header("Cache-Control", "private, no-store");
 		c.set("sesion", sesion);
+		if (opciones.turista) c.set("turistaId", Number(sesion.id));
 		await next();
 	});
+
+export const VerificarSession = requerirAcceso();
+export const VerificarSessionRol = (roles: readonly Rol[]) => requerirAcceso(roles);
+export const VerificarSessionRolVerificada = (roles: readonly Rol[]) =>
+	requerirAcceso(roles, { organizadorAprobado: true });
+export const RequerirTurista = requerirAcceso(["TURISTA"], { tipo: "usuario", privado: true, turista: true });
+export const RequerirAdministrador = requerirAcceso(["ADMINISTRADOR"], { tipo: "usuario", privado: true });
+export const RequerirOrganizador = requerirAcceso(["ORGANIZADOR"], { tipo: "organizador", privado: true });
+export const RequerirOrganizadorAprobado = requerirAcceso(["ORGANIZADOR"], {
+	tipo: "organizador", organizadorAprobado: true, privado: true,
+});
 
 declare module "hono" {
 	interface ContextVariableMap {
 		sesion: Variables["sesion"];
+		turistaId: number;
 	}
 }

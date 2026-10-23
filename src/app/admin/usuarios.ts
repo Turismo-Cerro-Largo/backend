@@ -1,30 +1,12 @@
 // src/app/admin/usuarios.ts
 import { Hono } from "hono";
 import { prisma } from "../../configuracion/db.js";
-import { BadRequestError, NotFoundError, ForbiddenError } from "../../configuracion/AppError.js";
-import { VerificarSessionRol } from "../../middleware/Session.js";
+import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
+import { RequerirAdministrador } from "../../middleware/Session.js";
 
 const app = new Hono();
 
-app.use("*", VerificarSessionRol(["ADMINISTRADOR"]), async (c, next) => {
-	const sesion = c.get("sesion");
-	const id = Number(sesion.id);
-
-	if (sesion.tipo !== "usuario" || !Number.isSafeInteger(id) || id <= 0) {
-		throw new ForbiddenError();
-	}
-
-	const actual = await prisma.usuario.findUnique({
-		where: { id },
-		select: { rol: true },
-	});
-
-	if (actual?.rol !== "ADMINISTRADOR") {
-		throw new ForbiddenError();
-	}
-
-	await next();
-});
+app.use("*", RequerirAdministrador);
 
 const entero = (v: string | undefined, porDefecto: number, max: number) => {
 	if (v === undefined) return porDefecto;

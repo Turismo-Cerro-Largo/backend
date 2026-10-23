@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
-import { idValido } from "./turista.schema.js";
+import { idValido } from "../shared/parametros.js";
 
 export const camposLugar = {
 	id: true,
@@ -82,3 +82,4 @@ app.get("/:id", async (c) => {
 });
 
 export { app as LugaresRoute };
+

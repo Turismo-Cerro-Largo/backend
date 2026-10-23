@@ -1,39 +1,14 @@
 import { consultarHorarios } from "../catalogo/transporte.js";
 import { Hono } from "hono";
-import { z } from "zod";
+import type { z } from "zod";
+import { empresaSchema, horarioSchema, estadoHorarioSchema } from "./transporte.schema.js";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../configuracion/AppError.js";
-import { VerificarSessionRol } from "../../middleware/Session.js";
+import { RequerirAdministrador } from "../../middleware/Session.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
 
 const app = new Hono();
-const admin = VerificarSessionRol(["ADMINISTRADOR"]);
-const texto = z.string().trim().min(1).max(150);
-const opcional = z.union([z.string().trim().max(255), z.null()]).optional();
-const empresaSchema = z
-	.object({
-		nombre: texto,
-		telefono: z.union([z.string().trim().max(50), z.null()]).optional(),
-		sitio_web: opcional.refine(
-			(x) => !x || /^https?:\/\//i.test(x),
-			"El sitio debe comenzar con http:// o https://",
-		),
-	})
-	.strict();
-const hora = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
-const horarioSchema = z
-	.object({
-		id_empresa: z.number().int().positive(),
-		origen: texto,
-		destino: texto,
-		hora_salida: hora,
-		hora_llegada: hora.nullable(),
-		dias: z.string().trim().min(1).max(100),
-		tipo_servicio: z.enum(["DEPARTAMENTAL", "INTERDEPARTAMENTAL"]),
-		precio: z.number().nonnegative().max(1000000).nullable(),
-		estado: z.enum(["PUBLICADO", "OCULTADO"]),
-	})
-	.strict();
+const admin = RequerirAdministrador;
 const parseId = (id: string) => {
 	const n = Number(id);
 	if (!Number.isSafeInteger(n) || n < 1) throw new BadRequestError("ID inválido.");
@@ -166,7 +141,7 @@ app.patch("/horarios/:id/estado", admin, bodyLimitado(2, "KB"), async (c) => {
 	const id = parseId(c.req.param("id"));
 	const d = (await checkBody(
 		c,
-		z.object({ estado: z.enum(["PUBLICADO", "OCULTADO"]) }).strict(),
+		estadoHorarioSchema,
 	)) as { estado: "PUBLICADO" | "OCULTADO" };
 	if (!(await prisma.horarioOmnibus.findUnique({ where: { id } }))) throw new NotFoundError();
 	return c.json(out(await prisma.horarioOmnibus.update({ where: { id }, data: d })));

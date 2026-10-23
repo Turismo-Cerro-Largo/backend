@@ -7,7 +7,7 @@ import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
-import { idValido } from "../turista/turista.schema.js";
+import { idValido } from "../shared/parametros.js";
 
 const app = new Hono();
 app.get('/mapa/lugares', async c => {
@@ -80,17 +80,17 @@ app.get("/recursos/:id", async (c) => {
   const recurso = await recursoVisible(c, {id});
   if (!recurso) throw new NotFoundError();
   const evento = /^\/api\/organizador\/eventos\/media\/([0-9a-f-]{36}\.(?:jpg|png|webp))$/.exec(recurso.uri);
-  const publico = /^(?:\/api\/archivos)?\/publicos\/((?:seed\/)?[a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp|mp4))$/.exec(recurso.uri);
-  const demo = /^\/publico\/demo\/([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp|mp4))$/.exec(recurso.uri);
+  const publico = /^(?:\/api\/archivos)?\/publicos\/((?:seed\/)?[a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp|gif|mp4|webm))$/.exec(recurso.uri);
+  const demo = /^\/publico\/demo\/([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp|gif|mp4|webm))$/.exec(recurso.uri);
   const archivo = evento ? path.join(process.cwd(), "publico", "eventos", evento[1])
     : publico ? path.join(process.cwd(), "publicos", publico[1])
     : demo ? path.join(process.cwd(), "publico", "demo", demo[1]) : null;
   if (!archivo) throw new NotFoundError();
-  if (archivo.endsWith(".mp4")) {
+  if (/\.(mp4|webm)$/.test(archivo)) {
     if (recurso.tipo !== "VIDEO") throw new NotFoundError();
     const info = await stat(archivo).catch(() => null);
     if (!info?.isFile()) throw new NotFoundError();
-    const headers = new Headers({ "Content-Type": "video/mp4", "Accept-Ranges": "bytes", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
+    const headers = new Headers({ "Content-Type": archivo.endsWith(".webm") ? "video/webm" : "video/mp4", "Accept-Ranges": "bytes", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
     let inicio = 0, fin = info.size - 1;
     const range = c.req.header("range");
     if (range) {
@@ -107,7 +107,7 @@ app.get("/recursos/:id", async (c) => {
   if (recurso.tipo !== "IMAGEN") throw new NotFoundError();
   let bytes: Buffer;
   try { bytes = await readFile(archivo); } catch { throw new NotFoundError(); }
-  const tipo = archivo.endsWith(".png") ? "image/png" : archivo.endsWith(".webp") ? "image/webp" : "image/jpeg";
+  const tipo = archivo.endsWith(".png") ? "image/png" : archivo.endsWith(".webp") ? "image/webp" : archivo.endsWith(".gif") ? "image/gif" : "image/jpeg";
   return new Response(new Uint8Array(bytes), { headers: {
     "Content-Type": tipo, "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"
   }});

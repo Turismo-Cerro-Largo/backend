@@ -1,21 +1,21 @@
 // src/app/admin/ubicaciones.ts
 
 import { Hono } from "hono";
-import { z } from "zod";
 import { prisma } from "../../configuracion/db.js";
-import { VerificarSessionRol } from "../../middleware/Session.js";
-import { ArchivosPublicos, borrar_publicos } from "../../middleware/Archivos.js";
+import { RequerirAdministrador } from "../../middleware/Session.js";
+import { ArchivosPublicos } from "../../middleware/Archivos.js";
+import { bodyLimitado } from "../../middleware/Limit.js";
 import {
 	BadRequestError,
 	NotFoundError,
 	ConflictError,
 } from "../../configuracion/AppError.js";
-import { datosSchema_ubicaciones } from "./ubicaciones.scheme.js";
+import { datosSchema_ubicaciones, estadoUbicacionSchema } from "./ubicaciones.scheme.js";
 
 const app = new Hono();
 
 // Todas las rutas requieren una sesión de administrador.
-app.use("*", VerificarSessionRol(["ADMINISTRADOR"]));
+app.use("*", RequerirAdministrador);
 
 /**
  * VALIDACIONES
@@ -78,45 +78,18 @@ const normalize = (x: any) => ({
 
 app.post(
 	"/recursos/upload",
-
-	ArchivosPublicos(
-		["jpg", "jpeg", "png", "webp", "gif", "mp4", "webm"],
-		80,
-	),
-
-	async (c) => {
-		const recursos = c.get("recursos");
-
-		if (recursos.length !== 1) {
-			await borrar_publicos(recursos);
-
-			throw new BadRequestError(
-				"Debés seleccionar un único archivo.",
-			);
-		}
-
-		const nombre = recursos[0];
-
-		const extension = nombre
-			.split(".")
-			.pop()
-			?.toLowerCase();
-
-		const tipo: "IMAGEN" | "VIDEO" =
-			extension === "mp4" || extension === "webm"
-				? "VIDEO"
-				: "IMAGEN";
-
-		return c.json(
-			{
-				uri: `/api/archivos/publicos/${nombre}`,
-				tipo,
-			},
-			201,
-		);
+	bodyLimitado(82, "MB"),
+	ArchivosPublicos(["jpg", "jpeg", "png", "webp", "gif", "mp4", "webm"], 80, 20),
+	(c) => {
+		const nombres = c.get("recursos");
+		if (!nombres.length) throw new BadRequestError("Seleccioná al menos un archivo.");
+		const recursos = nombres.map((nombre) => ({
+			uri: '/api/archivos/publicos/' + nombre,
+			tipo: /\.(mp4|webm)$/i.test(nombre) ? "VIDEO" as const : "IMAGEN" as const,
+		}));
+		return c.json({ recursos, ...(recursos.length === 1 ? recursos[0] : {}) }, 201);
 	},
 );
-
 app.get("/", async (c) => {
 	const offset = Number(c.req.query("offset") ?? "0");
 	const limit = Number(c.req.query("limit") ?? "12");
@@ -337,11 +310,7 @@ app.put("/:id", async (c) => {
 app.patch("/:id/estado", async (c) => {
 	const id = idNumero(c.req.param("id"));
 
-	const parsed = z
-		.object({
-			estado: z.enum(["PUBLICADO", "OCULTADO"]),
-		})
-		.safeParse(
+	const parsed = estadoUbicacionSchema.safeParse(
 			await c.req.json().catch(() => null),
 		);
 

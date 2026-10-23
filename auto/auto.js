@@ -66,6 +66,20 @@ async function main() {
 
 
 
+    // Localidades señaladas en el mapa de Cerro Largo. Las coordenadas y los iconos
+    // se completan desde el panel; no se sobreescriben al volver a ejecutar auto.
+    const localidades = [
+        ['Melo', 'Melo'],
+        ['Rio-Branco', 'Río Branco'],
+        ['Laguna-Merin', 'Laguna Merín'],
+        ['Fraile-Muerto', 'Fraile Muerto'],
+        ['Isidoro-Noblia', 'Isidoro Noblía'],
+        ['Acegua', 'Aceguá'],
+        ['Tupambae', 'Tupambaé'],
+        ['Arevalo', 'Arévalo'],
+        ['Placido-Rosas', 'Plácido Rosas'],
+        ['Centurion', 'Centurión']
+    ];
     // ========================================
     // USUARIOS
     // ========================================
@@ -432,6 +446,15 @@ async function main() {
     }
 
     console.log('Categorías cargadas');
+
+    for (const [slug, nombre] of localidades) {
+        await prisma.localidad.upsert({
+            where: { slug },
+            update: {},
+            create: { slug, nombre }
+        });
+    }
+    console.log('Localidades del mapa verificadas');
 
     // ========================================
     // CREAR USUARIOS

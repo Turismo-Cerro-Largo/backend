@@ -2,11 +2,11 @@
 import { Hono } from "hono";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
-import { VerificarSessionRol } from "../../middleware/Session.js";
+import { RequerirAdministrador } from "../../middleware/Session.js";
 import type { EstadoEvento } from "../../configuracion/generated/prisma/enums.js";
 
 const app = new Hono();
-app.use("*", VerificarSessionRol(["ADMINISTRADOR"]));
+app.use("*", RequerirAdministrador);
 
 const estados = [
     "BORRADOR",

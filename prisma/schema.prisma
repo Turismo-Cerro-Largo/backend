@@ -76,6 +76,21 @@ model Categoria {
   @@map("categoria")
 }
 
+model Localidad {
+  id             Int             @id @default(autoincrement())
+  slug           String          @unique @db.VarChar(120)
+  nombre         String          @unique @db.VarChar(120)
+  descripcion    String?         @db.VarChar(500)
+  latitud        Decimal?        @db.Decimal(10, 7)
+  longitud       Decimal?        @db.Decimal(10, 7)
+  icono          String?         @db.VarChar(255)
+  estado         EstadoContenido @default(PUBLICADO)
+  creado_en      DateTime        @default(now())
+  actualizado_en DateTime        @updatedAt
+
+  @@index([estado, nombre])
+  @@map("localidad")
+}
 model Ubicacion {
   id           Int             @id @default(autoincrement())
   nombre       String          @db.VarChar(150)

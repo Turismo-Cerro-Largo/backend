@@ -5,6 +5,8 @@ CREATE TABLE `usuario` (
     `apellidos` VARCHAR(100) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
     `departamento` VARCHAR(100) NULL,
+    `localidad` VARCHAR(120) NULL,
+    `foto_perfil` VARCHAR(255) NULL,
     `fecha_nacimiento` DATE NULL,
     `telefono` VARCHAR(30) NULL,
     `genero` ENUM('masculino', 'femenino', 'otro') NULL,
@@ -62,6 +64,25 @@ CREATE TABLE `categoria` (
     `descripcion` VARCHAR(255) NULL,
 
     UNIQUE INDEX `categoria_nombre_key`(`nombre`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `localidad` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `slug` VARCHAR(120) NOT NULL,
+    `nombre` VARCHAR(120) NOT NULL,
+    `descripcion` VARCHAR(500) NULL,
+    `latitud` DECIMAL(10, 7) NULL,
+    `longitud` DECIMAL(10, 7) NULL,
+    `icono` VARCHAR(255) NULL,
+    `estado` ENUM('PUBLICADO', 'OCULTADO') NOT NULL DEFAULT 'PUBLICADO',
+    `creado_en` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `actualizado_en` DATETIME(3) NOT NULL,
+
+    UNIQUE INDEX `localidad_slug_key`(`slug`),
+    UNIQUE INDEX `localidad_nombre_key`(`nombre`),
+    INDEX `localidad_estado_nombre_idx`(`estado`, `nombre`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

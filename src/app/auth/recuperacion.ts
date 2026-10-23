@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { createHash, randomBytes } from "node:crypto";
 import { hash } from "@node-rs/argon2";
-import { z } from "zod";
+import { correoSchema, resetSchema } from "./recuperacion.schema.js";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError } from "../../configuracion/AppError.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
@@ -12,17 +12,6 @@ const respuesta = {
 		"Si el correo corresponde a una cuenta con contraseña, recibirás un enlace para recuperarla.",
 };
 const digest = (v: string) => createHash("sha256").update(v).digest("hex");
-const correoSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) }).strict();
-const resetSchema = z
-	.object({
-		token: z.string().regex(/^[a-f0-9]{64}$/),
-		password: z
-			.string()
-			.min(8)
-			.max(32)
-			.regex(/^(?=.*[a-z])(?=.*[A-Z]).*$/),
-	})
-	.strict();
 // Límites por proceso; varias instancias requieren limitación compartida en el proxy.
 const intentos = new Map<string, { n: number; hasta: number }>();
 export function admitirIntento(clave: string, limite: number, ventana = 15 * 60 * 1000) {

@@ -34,7 +34,7 @@ vitest.config.js
 
 # Archivos publicos
 privado
-publico
+/publico/
 static
 src/configuracion/generated
 publicos
