@@ -56,3 +56,5 @@ export const datosSchema_ubicaciones = z.object({
         .default([]),
 
 });
+
+export const estadoUbicacionSchema = z.object({ estado: z.enum(["PUBLICADO", "OCULTADO"]) });

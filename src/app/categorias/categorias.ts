@@ -2,7 +2,7 @@
 import { Hono } from "hono";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../../configuracion/AppError.js";
-import { VerificarSessionRol } from "../../middleware/Session.js";
+import { RequerirAdministrador } from "../../middleware/Session.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
 import { categoria_scheme } from "./categorias.scheme.js";
 
@@ -56,7 +56,7 @@ app.get("/:id", async (c) => {
  * Administrador
  */
 
-app.post("/", VerificarSessionRol(["ADMINISTRADOR"]), bodyLimitado(10, "KB"), async (c) => {
+app.post("/", RequerirAdministrador, bodyLimitado(10, "KB"), async (c) => {
 	const datos = categoria_scheme.safeParse(await c.req.parseBody());
 
 	if (!datos.success) throw new BadRequestError();
@@ -80,7 +80,7 @@ app.post("/", VerificarSessionRol(["ADMINISTRADOR"]), bodyLimitado(10, "KB"), as
 	);
 });
 
-app.put("/:id", VerificarSessionRol(["ADMINISTRADOR"]), bodyLimitado(10, "KB"), async (c) => {
+app.put("/:id", RequerirAdministrador, bodyLimitado(10, "KB"), async (c) => {
 	const id = Number(c.req.param("id"));
 
 	if (!Number.isSafeInteger(id) || id < 1) throw new BadRequestError();
@@ -110,7 +110,7 @@ app.put("/:id", VerificarSessionRol(["ADMINISTRADOR"]), bodyLimitado(10, "KB"), 
 	);
 });
 
-app.delete("/:id", VerificarSessionRol(["ADMINISTRADOR"]), async (c) => {
+app.delete("/:id", RequerirAdministrador, async (c) => {
 	const id = Number(c.req.param("id"));
 
 	if (!Number.isSafeInteger(id) || id < 1) throw new BadRequestError();
