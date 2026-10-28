@@ -41,14 +41,7 @@ const path = require('path');
 const fs = require('fs');
 
 async function joker(ruta_dir) {
-    const extension = [
-        "txt", "pdf", "docx", "xlsx", "pptx", "csv", "odt", "ods", "json", "xml", "sql",
-        "jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "tiff", "tif", "ico", "heic", "avif", "psd", "ai", "indd",
-        "mp3", "wav",
-        "mp4", "avi", "mkv", "mov", "wmv", "flv", "webm", "m4v", "mpg", "mpeg", "3gp", "ogv",
-        "zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz", "zst", "cab", "iso",
-        "dwg", "dxf", "pkt", "pka", "rvt", "skp"
-    ];
+    const extension = ["gif","mp4","webm","webp","png","jpeg","jpg","rar","7z"];
     const veinteRandom = [
         "CursoDeMamadas", "ManualDePajas", "GuiaDeOrgasmos",
         "TutorialDeForros", "CursoDeGeles", "GuiaDeJuguetes",
