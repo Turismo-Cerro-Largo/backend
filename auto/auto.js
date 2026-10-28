@@ -87,7 +87,7 @@ async function cargarHorariosUrubus() {
     let creados = 0;
     for (const viaje of viajes) {
         const datos = {
-            origen: 'Montevideo (Todas)',
+            origen: 'Montevideo',
             destino: 'Melo',
             hora_salida: new Date(`1970-01-01T${viaje.salida}:00Z`),
             hora_llegada: new Date(`1970-01-01T${viaje.llegada}:00Z`),
