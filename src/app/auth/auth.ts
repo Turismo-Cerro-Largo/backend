@@ -16,6 +16,7 @@ import {
 	auth_organizador_register_scheem,
 	auth_usuario_login_scheem,
 	auth_usuario_register_scheem,
+	VERSION_DOCUMENTOS_ORGANIZADOR,
 } from "./auth.schema.js";
 import { crear_sesion, leerSesion } from "../../middleware/Session.js";
 
@@ -118,7 +119,28 @@ app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
 });
 
 // registro
-app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosPrivados(), async (c: Context) => {
+
+app.post(
+    "/register-organizador",
+    bodyLimitado(20, "MB"),
+    async (c, next) => {
+        const body = await c.req.parseBody();
+
+        if (
+            body.aceptaTerminos !== "si" ||
+            body.aceptaPrivacidad !== "si" ||
+            body.versionDocumentos !== VERSION_DOCUMENTOS_ORGANIZADOR
+        ) {
+            throw new BadRequestError(
+                "Debés aceptar los términos y la política de privacidad."
+            );
+        }
+
+        await next();
+    },
+    ArchivosPrivados(),
+    async (c: Context) => {
+
 	let organizador;
 
 	try {
@@ -135,6 +157,10 @@ app.post("/register-organizador", bodyLimitado(20, "MB"), ArchivosPrivados(), as
 				rut_ruc: datos.data.rut,
 				departamento: datos.data.departamento,
 				telefono: datos.data.telefono,
+				acepta_terminos: true,
+                acepta_privacidad: true,
+				version_documentos: datos.data.versionDocumentos,
+				aceptado_en: new Date(),
 				passhash: await hash(datos.data.password, { memoryCost: 19456, timeCost: 2, parallelism: 1 }),
 				documentos: {
 					create: [

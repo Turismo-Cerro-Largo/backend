@@ -45,6 +45,10 @@ model Organizador {
   estado              EstadoOrganizador       @default(PENDIENTE_REVISION)
   motivo_rechazo      String?                 @db.Text
   creado_en           DateTime                @default(now())
+   acepta_terminos    Boolean   @default(false)
+  acepta_privacidad  Boolean   @default(false)
+  version_documentos String?   @db.VarChar(40)
+  aceptado_en        DateTime?
   documentos          DocumentoOrganizador[]
   eventos             Evento[]
   recuperaciones      SolicitudRecuperacion[]

@@ -1,4 +1,5 @@
 import { z } from "zod";
+export const VERSION_DOCUMENTOS_ORGANIZADOR = "2026-10-28-v1";
 
 const emailRegex =
 	/^[a-zA-Z0-9._%+-]+@(gmail\.com|tuta\.com|tutanota\.com|hotmail\.com|outlook\.com|live\.com|proton\.me|protonmail\.com|yahoo\.com|icloud\.com)$/;
@@ -68,6 +69,11 @@ export const auth_organizador_register_scheem = z.object({
 
 	fotoCedulaFrente: z.any(),
 	fotoCedulaDorso: z.any(),
+	
+aceptaTerminos: z.literal("si"),
+aceptaPrivacidad: z.literal("si"),
+versionDocumentos: z.literal(VERSION_DOCUMENTOS_ORGANIZADOR),
+
 });
 
 export type auth_usuario_login_infer = z.infer<typeof auth_usuario_login_scheem>;
