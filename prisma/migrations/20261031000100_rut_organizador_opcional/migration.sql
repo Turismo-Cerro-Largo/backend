@@ -1,0 +1,1 @@
+ALTER TABLE `organizador` MODIFY `rut_ruc` VARCHAR(30) NULL;

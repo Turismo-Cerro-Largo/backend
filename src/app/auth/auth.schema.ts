@@ -60,7 +60,7 @@ export const auth_usuario_register_scheem = z.object({
 
 export const auth_organizador_register_scheem = z.object({
 	nombreOrganizacion: z.string().min(2).max(100).regex(organizacionRegex),
-	rut: z.string().length(12).regex(rutRegex),
+	rut: z.preprocess((valor) => typeof valor === "string" ? valor.trim() || null : valor, z.string().length(12).regex(rutRegex).nullish().transform((valor) => valor ?? null)),
 	departamento: z.enum(departamentos),
 	email: z.string().min(7).max(45).email().regex(emailRegex),
 	telefono: z.string().min(8).max(20).regex(telefonoRegex),

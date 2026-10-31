@@ -36,7 +36,7 @@ model Usuario {
 model Organizador {
   id                  Int                     @id @default(autoincrement())
   nombre_organizacion String                  @db.VarChar(150)
-  rut_ruc             String                  @unique @db.VarChar(30)
+  rut_ruc             String?                 @unique @db.VarChar(30)
   departamento     String?   @db.VarChar(100)
   email               String                  @unique
   telefono            String                  @db.VarChar(30)
