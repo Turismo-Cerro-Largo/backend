@@ -3,6 +3,7 @@
 // auto/auto.js
 
 import { hash } from '@node-rs/argon2';
+import { ubicacionesLocalidades, validarCoberturaLocalidades } from './ubicaciones-localidades.js';
 import { prisma } from './../src/configuracion/db.js';
 import { mkdir, copyFile, access, readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -91,7 +92,7 @@ async function cargarHorariosUrubus() {
             destino: 'Melo',
             hora_salida: new Date(`1970-01-01T${viaje.salida}:00Z`),
             hora_llegada: new Date(`1970-01-01T${viaje.llegada}:00Z`),
-            dias: 'Viernes 23/10/2026',
+            dias: 'Viernes',
             tipo_servicio: 'INTERDEPARTAMENTAL',
             precio: null,
             estado: 'PUBLICADO',
@@ -106,9 +107,12 @@ async function cargarHorariosUrubus() {
                 id_empresa: datos.id_empresa,
                 hora_salida: datos.hora_salida,
                 hora_llegada: datos.hora_llegada,
-                dias: datos.dias,
+                dias: { in: [datos.dias, 'Viernes 23/10/2026'] },
             },
         });
+        if (existente && existente.dias !== datos.dias) {
+            await prisma.horarioOmnibus.update({ where: { id: existente.id }, data: { dias: datos.dias } });
+        }
         if (!existente) {
             await prisma.horarioOmnibus.create({ data: datos });
             creados++;
@@ -128,6 +132,7 @@ async function main() {
         ['Alojamiento', 'Hoteles, hostales, posadas y opciones de hospedaje.'],
         ['Restaurantes', 'Restaurantes, cafeterías y propuestas gastronómicas locales.'],
         ['Cultura', 'Museos, monumentos, patrimonio histórico y espacios culturales.'],
+        ['Compras', 'Free shops y comercios para visitar en la frontera.'],
         ['Eventos sociales', 'Ferias, festivales, fiestas y encuentros sociales.'],
         ['Parques / Naturaleza', 'Parques, reservas naturales, lagunas y espacios al aire libre.'],
     ];
@@ -450,11 +455,21 @@ async function main() {
 
     ];
 
+    ubicaciones.push(...ubicacionesLocalidades);
+    validarCoberturaLocalidades(localidades, ubicaciones);
+
     // ========================================
     // VALIDAR IMÁGENES
     // ========================================
 
     const imagenDF = await buscarImagenDF();
+
+    // Las fotos complementarias pueden agregarse después sin bloquear el seed.
+    const archivosAuto = new Set(await readdir(carpetaAuto));
+    const imagenesComplementarias = ubicacionesLocalidades.map((u) => u.imagen).filter(Boolean);
+    for (const imagen of imagenesComplementarias) {
+        if (!archivosAuto.has(imagen)) console.warn(`Foto pendiente (se omite): ${imagen}`);
+    }
 
     const imagenes = [
         '1.png',
@@ -472,7 +487,8 @@ async function main() {
         'ibarbourou.jpg',
         'rivera.jpg',
         'PlayaFM.jpg',
-        'bioparque.jpg'
+        'bioparque.jpg',
+        ...imagenesComplementarias.filter((imagen) => archivosAuto.has(imagen))
     ];
 
     for (const imagen of imagenes) {
@@ -695,11 +711,13 @@ async function main() {
 
         const {
             categoria: _nombreCategoria,
+            creditoImagen,
             imagen,
             ...datosUbicacion
         } = ubicacion;
 
-        const nombreImagen = imagen === 'DF' ? imagenDF : imagen;
+        const candidataImagen = imagen === 'DF' ? imagenDF : imagen;
+        const nombreImagen = candidataImagen && archivosAuto.has(candidataImagen) ? candidataImagen : null;
 
         // ========================================
         // VERIFICAR SI YA EXISTE LA UBICACIÓN
@@ -763,7 +781,7 @@ async function main() {
                     data: {
                         uri,
                         tipo: 'IMAGEN',
-                        descripcion: `Imagen de ${ubicacionDB.nombre}`,
+                        descripcion: creditoImagen ?? `Imagen de ${ubicacionDB.nombre}`,
                         orden: 0,
                         id_ubicacion: ubicacionDB.id
                     }
