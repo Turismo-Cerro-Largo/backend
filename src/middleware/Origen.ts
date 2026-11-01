@@ -1,11 +1,11 @@
+import { env } from "../configuracion/env.js";
 import { createMiddleware } from "hono/factory";
 import { ForbiddenError } from "../configuracion/AppError.js";
 export function origenesPermitidos() {
 	const configured =
-		process.env.APP_ORIGINS ||
-		process.env.TURISTA_ORIGINS ||
-		(process.env.NODE_ENV === "production"
-			? process.env.APP_PUBLIC_URL || ""
+		env.APP_ORIGINS ||
+		(env.NODE_ENV === "production"
+			? env.APP_PUBLIC_URL || ""
 			: "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174");
 	return configured
 		.split(",")

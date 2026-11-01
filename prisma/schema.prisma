@@ -1,25 +1,26 @@
 generator client {
   provider = "prisma-client"
+  runtime = "cloudflare"
   output   = "../src/configuracion/generated/prisma"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "sqlite"
 }
 
 model Usuario {
   id               Int       @id @default(autoincrement())
-  nombres          String    @db.VarChar(100)
-  apellidos        String    @db.VarChar(100)
+  nombres          String
+  apellidos        String
   email            String    @unique
-  departamento     String?   @db.VarChar(100)
-  localidad        String?   @db.VarChar(120)
-  foto_perfil      String?   @db.VarChar(255)
-  fecha_nacimiento DateTime? @db.Date
-  telefono         String?   @db.VarChar(30)
+  departamento     String?
+  localidad        String?
+  foto_perfil      String?
+  fecha_nacimiento DateTime?
+  telefono         String?
   genero           Genero?
-  cedula           String?   @unique @db.VarChar(8)
-  passhash         String?   @db.VarChar(255)
+  cedula           String?   @unique
+  passhash         String?
   rol              Rol       @default(TURISTA)
   sub              String?   @unique
   creado_en        DateTime  @default(now())
@@ -35,19 +36,19 @@ model Usuario {
 
 model Organizador {
   id                  Int                     @id @default(autoincrement())
-  nombre_organizacion String                  @db.VarChar(150)
-  rut_ruc             String?                 @unique @db.VarChar(30)
-  departamento     String?   @db.VarChar(100)
+  nombre_organizacion String
+  rut_ruc             String?                 @unique
+  departamento     String?
   email               String                  @unique
-  telefono            String                  @db.VarChar(30)
-  sitio_web           String?                 @db.VarChar(500)
-  passhash            String                  @db.VarChar(255)
+  telefono            String
+  sitio_web           String?
+  passhash            String
   estado              EstadoOrganizador       @default(PENDIENTE_REVISION)
-  motivo_rechazo      String?                 @db.Text
+  motivo_rechazo      String?
   creado_en           DateTime                @default(now())
    acepta_terminos    Boolean   @default(false)
   acepta_privacidad  Boolean   @default(false)
-  version_documentos String?   @db.VarChar(40)
+  version_documentos String?
   aceptado_en        DateTime?
   documentos          DocumentoOrganizador[]
   eventos             Evento[]
@@ -60,7 +61,7 @@ model Organizador {
 
 model DocumentoOrganizador {
   id             Int           @id @default(autoincrement())
-  uri            String        @db.VarChar(2048)
+  uri            String
   tipo           DocumentoTipo
   creado_en      DateTime      @default(now())
   id_organizador Int
@@ -72,8 +73,8 @@ model DocumentoOrganizador {
 
 model Categoria {
   id          Int         @id @default(autoincrement())
-  nombre      String      @unique @db.VarChar(100)
-  descripcion String?     @db.VarChar(255)
+  nombre      String      @unique
+  descripcion String?
   eventos     Evento[]
   ubicaciones Ubicacion[]
 
@@ -82,12 +83,12 @@ model Categoria {
 
 model Localidad {
   id             Int             @id @default(autoincrement())
-  slug           String          @unique @db.VarChar(120)
-  nombre         String          @unique @db.VarChar(120)
-  descripcion    String?         @db.VarChar(500)
-  latitud        Decimal?        @db.Decimal(10, 7)
-  longitud       Decimal?        @db.Decimal(10, 7)
-  icono          String?         @db.VarChar(255)
+  slug           String          @unique
+  nombre         String          @unique
+  descripcion    String?
+  latitud        Float?
+  longitud       Float?
+  icono          String?
   estado         EstadoContenido @default(PUBLICADO)
   creado_en      DateTime        @default(now())
   actualizado_en DateTime        @updatedAt
@@ -97,15 +98,15 @@ model Localidad {
 }
 model Ubicacion {
   id           Int             @id @default(autoincrement())
-  nombre       String          @db.VarChar(150)
-  descripcion  String          @db.Text
-  direccion    String?         @db.VarChar(255)
-  localidad    String          @db.VarChar(120)
-  telefono     String?         @db.VarChar(30)
-  sitio_web    String?         @db.VarChar(500)
-  horario      String?         @db.VarChar(255)
-  latitud      Decimal         @db.Decimal(10, 7)
-  longitud     Decimal         @db.Decimal(10, 7)
+  nombre       String
+  descripcion  String
+  direccion    String?
+  localidad    String
+  telefono     String?
+  sitio_web    String?
+  horario      String?
+  latitud      Float
+  longitud     Float
   estado       EstadoContenido @default(PUBLICADO)
   creado_en    DateTime        @default(now())
   id_categoria Int
@@ -122,9 +123,9 @@ model Ubicacion {
 
 model Recurso {
   id            Int         @id @default(autoincrement())
-  uri           String      @db.VarChar(2048)
+  uri           String
   tipo          RecursoTipo @default(IMAGEN)
-  descripcion   String?     @db.VarChar(255)
+  descripcion   String?
   orden         Int         @default(0)
   id_ubicacion  Int?
   id_evento     Int?
@@ -141,8 +142,8 @@ model Recurso {
 
 model Comentario {
   id           Int              @id @default(autoincrement())
-  texto        String?          @db.Text
-  calificacion Int              @db.TinyInt
+  texto        String?
+  calificacion Int
   estado       EstadoComentario @default(PENDIENTE_REVISION)
   creado_en    DateTime         @default(now())
   id_usuario   Int
@@ -173,18 +174,18 @@ model Favorito {
 
 model Evento {
   id             Int          @id @default(autoincrement())
-  titulo         String       @db.VarChar(180)
-  descripcion    String       @db.Text
+  titulo         String
+  descripcion    String
   inicio         DateTime
   fin            DateTime?
-  lugar_evento   String?      @db.VarChar(255)
-  latitud        Decimal?     @db.Decimal(10, 7)
-  longitud       Decimal?     @db.Decimal(10, 7)
+  lugar_evento   String?
+  latitud        Float?
+  longitud       Float?
   es_gratuito    Boolean      @default(false)
-  precio         Decimal?     @db.Decimal(10, 2)
-  contacto       String?      @db.VarChar(255)
+  precio         Decimal?
+  contacto       String?
   estado         EstadoEvento @default(BORRADOR)
-  motivo_rechazo String?      @db.Text
+  motivo_rechazo String?
   creado_en      DateTime     @default(now())
   actualizado_en DateTime     @updatedAt
   id_organizador Int
@@ -201,7 +202,7 @@ model Evento {
 
 model SolicitudRecuperacion {
   id               Int          @id @default(autoincrement())
-  token            String       @unique @db.VarChar(255)
+  token            String       @unique
   creado_en        DateTime     @default(now())
   fecha_expiracion DateTime
   usado            Boolean      @default(false)
@@ -218,9 +219,9 @@ model SolicitudRecuperacion {
 
 model EmpresaTransporte {
   id        Int              @id @default(autoincrement())
-  nombre    String           @unique @db.VarChar(150)
-  telefono  String?          @db.VarChar(30)
-  sitio_web String?          @db.VarChar(500)
+  nombre    String           @unique
+  telefono  String?
+  sitio_web String?
   horarios  HorarioOmnibus[]
 
   @@map("empresa_transporte")
@@ -228,13 +229,13 @@ model EmpresaTransporte {
 
 model HorarioOmnibus {
   id            Int                    @id @default(autoincrement())
-  origen        String                 @db.VarChar(120)
-  destino       String                 @db.VarChar(120)
-  hora_salida   DateTime               @db.Time(0)
-  hora_llegada  DateTime?              @db.Time(0)
-  dias          String                 @db.VarChar(100)
+  origen        String
+  destino       String
+  hora_salida   DateTime
+  hora_llegada  DateTime?
+  dias          String
   tipo_servicio TipoServicioTransporte
-  precio        Decimal?               @db.Decimal(10, 2)
+  precio        Decimal?
   estado        EstadoContenido        @default(PUBLICADO)
   id_empresa    Int
   empresa       EmpresaTransporte      @relation(fields: [id_empresa], references: [id], onDelete: Cascade)

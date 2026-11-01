@@ -3,7 +3,11 @@ import { listarEventos, detalleEvento } from "../catalogo/catalogo.js";
 import { Hono } from "hono";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
-import { VerificarSessionRolVerificada, RequerirOrganizadorAprobado, RequerirAdministrador } from "../../middleware/Session.js";
+import {
+	VerificarSessionRolVerificada,
+	RequerirOrganizadorAprobado,
+	RequerirAdministrador,
+} from "../../middleware/Session.js";
 import { eventos_estado_scheme, eventos_formulario_scheme } from "./eventos.scheme.js";
 import { ArchivosPublicos, borrar_publicos } from "../../middleware/Archivos.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
@@ -14,8 +18,6 @@ const app = new Hono();
 app.get("/", listarEventos);
 
 app.get("/status", RequerirOrganizadorAprobado, async (c) => {
-
-
 	const [total, pendientes, publicados, borradores, ultimos] = await Promise.all([
 		prisma.evento.count({ where: { id_organizador: Number(c.get("sesion").id) } }),
 		prisma.evento.count({
@@ -42,8 +44,6 @@ app.get(
 	"/organizador/:id_organizador",
 	VerificarSessionRolVerificada(["ORGANIZADOR", "ADMINISTRADOR"]),
 	async (c) => {
-
-
 		if (
 			!Number.isInteger(Number(c.req.param("id_organizador"))) ||
 			Number(c.req.param("id_organizador")) < 1
@@ -96,8 +96,6 @@ app.post(
 	ArchivosPublicos(["jpg", "jpeg", "png", "webp"], 8),
 	async (c) => {
 		try {
-
-
 			const datos = eventos_formulario_scheme.safeParse(await c.req.parseBody({ all: true }));
 
 			if (!datos.success) throw new BadRequestError();
@@ -110,8 +108,8 @@ app.post(
 					fin: datos.data.fin ? new Date(datos.data.fin) : null,
 					lugar_evento:
 						[datos.data.localidad, datos.data.direccion].filter(Boolean).join(", ") || null,
-					latitud: datos.data.latitud || null,
-					longitud: datos.data.longitud || null,
+					latitud: datos.data.latitud ? Number(datos.data.latitud) : null,
+					longitud: datos.data.longitud ? Number(datos.data.longitud) : null,
 					es_gratuito: datos.data.es_gratuito === "true",
 					precio: datos.data.es_gratuito === "true" ? null : datos.data.precio || null,
 					contacto:
@@ -146,8 +144,6 @@ app.put(
 	ArchivosPublicos(["jpg", "jpeg", "png", "webp"], 8),
 	async (c) => {
 		try {
-
-
 			if (!Number.isInteger(Number(c.req.param("id"))) || Number(c.req.param("id")) < 1)
 				throw new BadRequestError();
 
@@ -173,8 +169,8 @@ app.put(
 					fin: datos.data.fin ? new Date(datos.data.fin) : null,
 					lugar_evento:
 						[datos.data.localidad, datos.data.direccion].filter(Boolean).join(", ") || null,
-					latitud: datos.data.latitud || null,
-					longitud: datos.data.longitud || null,
+					latitud: datos.data.latitud ? Number(datos.data.latitud) : null,
+					longitud: datos.data.longitud ? Number(datos.data.longitud) : null,
 					es_gratuito: datos.data.es_gratuito === "true",
 					precio: datos.data.es_gratuito === "true" ? null : datos.data.precio || null,
 					contacto:
@@ -186,12 +182,10 @@ app.put(
 					id_categoria: datos.data.id_categoria,
 					recursos: {
 						createMany: {
-							data: c
-								.get("recursos")
-								.map((uri, orden) => ({
-									uri: `/publicos/${uri}`,
-									orden: existente._count.recursos + orden,
-								})),
+							data: c.get("recursos").map((uri, orden) => ({
+								uri: `/publicos/${uri}`,
+								orden: existente._count.recursos + orden,
+							})),
 						},
 					},
 				},
@@ -208,8 +202,6 @@ app.put(
 );
 
 app.delete("/:id", RequerirOrganizadorAprobado, async (c) => {
-
-
 	if (!Number.isInteger(Number(c.req.param("id"))) || Number(c.req.param("id")) < 1)
 		throw new BadRequestError();
 

@@ -1,39 +1,45 @@
 {
-  "name": "backend",
-  "type": "module",
-  "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "orm:migrate": "prisma migrate dev --name",
-    "orm:generate": "prisma generate",
-    "orm:pereza": "prisma migrate reset --force && pnpm orm:generate",
-    "orm:deploy": "prisma migrate deploy",
-    "studio": "prisma studio",
-    "test": "vitest run",
-    "check": "biome format --write ./src/app && biome check --write ./src/app",
-    "format:middleware": "biome format --write ./src/middleware",
-    "format:app": "biome format --write ./src/app",
-    "format:conf": "biome format --write ./src/configuracion"
-  },
-  "dependencies": {
-    "@hono/node-server": "^2.1.1",
-    "@hono/oauth-providers": "^0.9.0",
-    "@node-rs/argon2": "^2.2.1",
-    "@prisma/adapter-mariadb": "^7.10.1",
-    "@prisma/client": "^7.10.1",
-    "dotenv": "^17.4.2",
-    "hono": "^4.13.5",
-    "nodemailer": "^10.1.7",
-    "zod": "^4.5.4"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.5.15",
-    "@types/node": "^26.4.1",
-    "@types/nodemailer": "^8.0.2",
-    "prisma": "^7.10.1",
-    "tsx": "^4.23.13",
-    "typescript": "^7.0.2",
-    "vitest": "^5.0.0"
-  }
+	"name": "backend",
+	"type": "module",
+	"scripts": {
+		"dev": "wrangler dev --port 4000",
+		"build": "prisma generate --config prisma7.config.ts && tsc --noEmit && wrangler deploy --dry-run --outdir dist",
+		"start": "wrangler dev --port 4000",
+		"orm:generate": "prisma generate --config prisma7.config.ts",
+		"test": "wrangler deploy --dry-run --outdir dist && vitest run --config vitest.cloud.config.ts",
+		"check": "biome format --write ./src/app && biome check --write ./src/app",
+		"format:middleware": "biome format --write ./src/middleware",
+		"format:app": "biome format --write ./src/app",
+		"format:conf": "biome format --write ./src/configuracion",
+		"deploy": "wrangler deploy",
+		"db:local": "wrangler d1 migrations apply DB --local",
+		"db:remote": "wrangler d1 migrations apply DB --remote",
+		"check:types": "tsc --noEmit",
+		"test:cloud": "wrangler deploy --dry-run --outdir dist && vitest run --config vitest.cloud.config.ts",
+		"seed:generate": "node scripts/cloud-seed.mjs",
+		"seed:local": "node scripts/cloud-seed.mjs && wrangler d1 execute DB --local --file seed/catalogo.sql",
+		"files:local": "node scripts/cloud-upload.mjs --local"
+	},
+	"dependencies": {
+		"@hono/oauth-providers": "^0.9.0",
+		"@noble/hashes": "^2.4.0",
+		"@prisma/adapter-d1": "^7.10.1",
+		"@prisma/client": "^7.10.1",
+		"dotenv": "^17.4.2",
+		"hono": "^4.13.5",
+		"zod": "^4.5.4"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.15",
+		"@cloudflare/workers-types": "^5.20261101.1",
+		"@node-rs/argon2": "^2.2.1",
+		"@types/node": "^26.4.1",
+		"acorn": "^8.19.0",
+		"miniflare": "^4.20260730.0",
+		"prisma": "^7.10.1",
+		"tsx": "^4.23.13",
+		"typescript": "^7.0.2",
+		"vitest": "^5.0.0",
+		"wrangler": "^4.156.0"
+	}
 }

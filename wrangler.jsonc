@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cerro-largo-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": false,
+  "limits": {
+    "cpu_ms": 30000
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cerro-largo",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations/d1"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "FILES",
+      "bucket_name": "cerro-largo-files"
+    }
+  ],
+  "vars": {
+    "NODE_ENV": "production",
+    "APP_PUBLIC_URL": "https://CONFIGURAR-FRONTEND.example",
+    "APP_ORIGINS": "https://CONFIGURAR-FRONTEND.example"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

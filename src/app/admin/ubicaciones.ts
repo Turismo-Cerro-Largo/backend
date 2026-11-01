@@ -1,3 +1,4 @@
+import { batch, updateSQL } from "../../configuracion/d1.js";
 // src/app/admin/ubicaciones.ts
 
 import { Hono } from "hono";
@@ -5,11 +6,7 @@ import { prisma } from "../../configuracion/db.js";
 import { RequerirAdministrador } from "../../middleware/Session.js";
 import { ArchivosPublicos } from "../../middleware/Archivos.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
-import {
-	BadRequestError,
-	NotFoundError,
-	ConflictError,
-} from "../../configuracion/AppError.js";
+import { BadRequestError, NotFoundError, ConflictError } from "../../configuracion/AppError.js";
 import { datosSchema_ubicaciones, estadoUbicacionSchema } from "./ubicaciones.scheme.js";
 
 const app = new Hono();
@@ -30,8 +27,6 @@ const idNumero = (v: string) => {
 
 	return n;
 };
-
-
 
 /**
  * CAMPOS DE CONSULTA
@@ -84,8 +79,8 @@ app.post(
 		const nombres = c.get("recursos");
 		if (!nombres.length) throw new BadRequestError("Seleccioná al menos un archivo.");
 		const recursos = nombres.map((nombre) => ({
-			uri: '/api/archivos/publicos/' + nombre,
-			tipo: /\.(mp4|webm)$/i.test(nombre) ? "VIDEO" as const : "IMAGEN" as const,
+			uri: "/api/archivos/publicos/" + nombre,
+			tipo: /\.(mp4|webm)$/i.test(nombre) ? ("VIDEO" as const) : ("IMAGEN" as const),
 		}));
 		return c.json({ recursos, ...(recursos.length === 1 ? recursos[0] : {}) }, 201);
 	},
@@ -112,65 +107,53 @@ app.get("/", async (c) => {
 
 	const estado = c.req.query("estado");
 
-	if (
-		estado &&
-		!["PUBLICADO", "OCULTADO"].includes(estado)
-	) {
+	if (estado && !["PUBLICADO", "OCULTADO"].includes(estado)) {
 		throw new BadRequestError();
 	}
 
 	const categoria = c.req.query("categoria");
 
-	if (
-		categoria &&
-		(!Number.isSafeInteger(Number(categoria)) ||
-			Number(categoria) < 1)
-	) {
+	if (categoria && (!Number.isSafeInteger(Number(categoria)) || Number(categoria) < 1)) {
 		throw new BadRequestError();
 	}
 
 	const where = {
 		...(estado
 			? {
-				estado: estado as
-					| "PUBLICADO"
-					| "OCULTADO",
-			}
+					estado: estado as "PUBLICADO" | "OCULTADO",
+				}
 			: {}),
 
-		...(categoria
-			? { id_categoria: Number(categoria) }
-			: {}),
+		...(categoria ? { id_categoria: Number(categoria) } : {}),
 
 		...(buscar
 			? {
-				OR: [
-					{ nombre: { contains: buscar } },
-					{ localidad: { contains: buscar } },
-					{ descripcion: { contains: buscar } },
-				],
-			}
+					OR: [
+						{ nombre: { contains: buscar } },
+						{ localidad: { contains: buscar } },
+						{ descripcion: { contains: buscar } },
+					],
+				}
 			: {}),
 	};
 
-	const [total, ubicaciones, publicadas] =
-		await Promise.all([
-			prisma.ubicacion.count({ where }),
+	const [total, ubicaciones, publicadas] = await Promise.all([
+		prisma.ubicacion.count({ where }),
 
-			prisma.ubicacion.findMany({
-				where,
-				skip: offset,
-				take: limit,
-				orderBy: {
-					creado_en: "desc",
-				},
-				select,
-			}),
+		prisma.ubicacion.findMany({
+			where,
+			skip: offset,
+			take: limit,
+			orderBy: {
+				creado_en: "desc",
+			},
+			select,
+		}),
 
-			prisma.ubicacion.count({
-				where: { estado: "PUBLICADO" },
-			}),
-		]);
+		prisma.ubicacion.count({
+			where: { estado: "PUBLICADO" },
+		}),
+	]);
 
 	return c.json({
 		total,
@@ -201,9 +184,7 @@ async function comprobarCategoria(id: number) {
 	});
 
 	if (!categoria) {
-		throw new BadRequestError(
-			"La categoría seleccionada no existe.",
-		);
+		throw new BadRequestError("La categoría seleccionada no existe.");
 	}
 }
 
@@ -221,9 +202,7 @@ function recursoData(
 }
 
 app.post("/", async (c) => {
-	const result = datosSchema_ubicaciones.safeParse(
-		await c.req.json().catch(() => null),
-	);
+	const result = datosSchema_ubicaciones.safeParse(await c.req.json().catch(() => null));
 
 	if (!result.success) {
 		return c.json(
@@ -259,9 +238,7 @@ app.post("/", async (c) => {
 app.put("/:id", async (c) => {
 	const id = idNumero(c.req.param("id"));
 
-	const result = datosSchema_ubicaciones.safeParse(
-		await c.req.json().catch(() => null),
-	);
+	const result = datosSchema_ubicaciones.safeParse(await c.req.json().catch(() => null));
 
 	if (!result.success) {
 		return c.json(
@@ -286,23 +263,14 @@ app.put("/:id", async (c) => {
 
 	await comprobarCategoria(datos.id_categoria);
 
-	await prisma.$transaction(async (tx) => {
-		await tx.recurso.deleteMany({
-			where: {
-				id_ubicacion: id,
-			},
-		});
-
-		await tx.ubicacion.update({
-			where: { id },
-			data: {
-				...datos,
-				recursos: {
-					create: recursoData(recursos),
-				},
-			},
-		});
-	});
+	await batch([
+		{ sql: "DELETE FROM recurso WHERE id_ubicacion=?", values: [id] },
+		updateSQL("ubicacion", datos, id),
+		...recursoData(recursos).map((r) => ({
+			sql: "INSERT INTO recurso (uri,tipo,orden,id_ubicacion) VALUES (?,?,?,?)",
+			values: [r.uri, r.tipo, r.orden, id],
+		})),
+	]);
 
 	return c.json({ ok: true });
 });
@@ -310,9 +278,7 @@ app.put("/:id", async (c) => {
 app.patch("/:id/estado", async (c) => {
 	const id = idNumero(c.req.param("id"));
 
-	const parsed = estadoUbicacionSchema.safeParse(
-			await c.req.json().catch(() => null),
-		);
+	const parsed = estadoUbicacionSchema.safeParse(await c.req.json().catch(() => null));
 
 	if (!parsed.success) {
 		throw new BadRequestError();
@@ -364,24 +330,11 @@ app.delete("/:id", async (c) => {
 		throw new NotFoundError();
 	}
 
-	if (
-		u._count.comentarios ||
-		u._count.favoritos
-	) {
+	if (u._count.comentarios || u._count.favoritos) {
 		throw new ConflictError();
 	}
 
-	await prisma.$transaction(async (tx) => {
-		await tx.recurso.deleteMany({
-			where: {
-				id_ubicacion: id,
-			},
-		});
-
-		await tx.ubicacion.delete({
-			where: { id },
-		});
-	});
+	await batch([{ sql: "DELETE FROM ubicacion WHERE id=?", values: [id] }]);
 
 	return c.body(null, 204);
 });

@@ -15,8 +15,14 @@ import { AppError } from "./AppError.js";
 export const Configuracion = (app: Hono) => {
 	app.use("*", logger());
 
-	app.use("*", cors({origin: origin => origenesPermitidos().includes(origin) ? origin : undefined,credentials:true}));
- 	app.use("*", csrf({ origin: origenesPermitidos() }));
+	app.use(
+		"*",
+		cors({
+			origin: (origin) => (origenesPermitidos().includes(origin) ? origin : undefined),
+			credentials: true,
+		}),
+	);
+	app.use("*", async (c, next) => csrf({ origin: origenesPermitidos() })(c, next));
 	// El middleware oficial cubre formularios. Esta regla conserva el control de JSON.
 	app.use("*", verificarOrigen);
 
@@ -56,4 +62,3 @@ export const Configuracion = (app: Hono) => {
 		);
 	});
 };
-

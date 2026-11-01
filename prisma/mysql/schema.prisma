@@ -1,0 +1,300 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/configuracion/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Usuario {
+  id               Int       @id @default(autoincrement())
+  nombres          String    @db.VarChar(100)
+  apellidos        String    @db.VarChar(100)
+  email            String    @unique
+  departamento     String?   @db.VarChar(100)
+  localidad        String?   @db.VarChar(120)
+  foto_perfil      String?   @db.VarChar(255)
+  fecha_nacimiento DateTime? @db.Date
+  telefono         String?   @db.VarChar(30)
+  genero           Genero?
+  cedula           String?   @unique @db.VarChar(8)
+  passhash         String?   @db.VarChar(255)
+  rol              Rol       @default(TURISTA)
+  sub              String?   @unique
+  creado_en        DateTime  @default(now())
+
+  comentarios    Comentario[]
+  favoritos      Favorito[]
+  recuperaciones SolicitudRecuperacion[]
+
+  @@index([email])
+  @@index([departamento])
+  @@map("usuario")
+}
+
+model Organizador {
+  id                  Int                     @id @default(autoincrement())
+  nombre_organizacion String                  @db.VarChar(150)
+  rut_ruc             String?                 @unique @db.VarChar(30)
+  departamento     String?   @db.VarChar(100)
+  email               String                  @unique
+  telefono            String                  @db.VarChar(30)
+  sitio_web           String?                 @db.VarChar(500)
+  passhash            String                  @db.VarChar(255)
+  estado              EstadoOrganizador       @default(PENDIENTE_REVISION)
+  motivo_rechazo      String?                 @db.Text
+  creado_en           DateTime                @default(now())
+   acepta_terminos    Boolean   @default(false)
+  acepta_privacidad  Boolean   @default(false)
+  version_documentos String?   @db.VarChar(40)
+  aceptado_en        DateTime?
+  documentos          DocumentoOrganizador[]
+  eventos             Evento[]
+  recuperaciones      SolicitudRecuperacion[]
+
+  @@index([email])
+  @@index([estado])
+  @@map("organizador")
+}
+
+model DocumentoOrganizador {
+  id             Int           @id @default(autoincrement())
+  uri            String        @db.VarChar(2048)
+  tipo           DocumentoTipo
+  creado_en      DateTime      @default(now())
+  id_organizador Int
+  organizador    Organizador   @relation(fields: [id_organizador], references: [id], onDelete: Cascade)
+
+  @@index([id_organizador])
+  @@map("documento_organizador")
+}
+
+model Categoria {
+  id          Int         @id @default(autoincrement())
+  nombre      String      @unique @db.VarChar(100)
+  descripcion String?     @db.VarChar(255)
+  eventos     Evento[]
+  ubicaciones Ubicacion[]
+
+  @@map("categoria")
+}
+
+model Localidad {
+  id             Int             @id @default(autoincrement())
+  slug           String          @unique @db.VarChar(120)
+  nombre         String          @unique @db.VarChar(120)
+  descripcion    String?         @db.VarChar(500)
+  latitud        Decimal?        @db.Decimal(10, 7)
+  longitud       Decimal?        @db.Decimal(10, 7)
+  icono          String?         @db.VarChar(255)
+  estado         EstadoContenido @default(PUBLICADO)
+  creado_en      DateTime        @default(now())
+  actualizado_en DateTime        @updatedAt
+
+  @@index([estado, nombre])
+  @@map("localidad")
+}
+model Ubicacion {
+  id           Int             @id @default(autoincrement())
+  nombre       String          @db.VarChar(150)
+  descripcion  String          @db.Text
+  direccion    String?         @db.VarChar(255)
+  localidad    String          @db.VarChar(120)
+  telefono     String?         @db.VarChar(30)
+  sitio_web    String?         @db.VarChar(500)
+  horario      String?         @db.VarChar(255)
+  latitud      Decimal         @db.Decimal(10, 7)
+  longitud     Decimal         @db.Decimal(10, 7)
+  estado       EstadoContenido @default(PUBLICADO)
+  creado_en    DateTime        @default(now())
+  id_categoria Int
+  comentarios  Comentario[]
+  favoritos    Favorito[]
+  recursos     Recurso[]
+  categoria    Categoria       @relation(fields: [id_categoria], references: [id])
+
+  @@index([nombre])
+  @@index([localidad])
+  @@index([id_categoria, estado])
+  @@map("ubicacion")
+}
+
+model Recurso {
+  id            Int         @id @default(autoincrement())
+  uri           String      @db.VarChar(2048)
+  tipo          RecursoTipo @default(IMAGEN)
+  descripcion   String?     @db.VarChar(255)
+  orden         Int         @default(0)
+  id_ubicacion  Int?
+  id_evento     Int?
+  id_comentario Int?
+  comentario    Comentario? @relation(fields: [id_comentario], references: [id], onDelete: Cascade)
+  evento        Evento?     @relation(fields: [id_evento], references: [id], onDelete: Cascade)
+  ubicacion     Ubicacion?  @relation(fields: [id_ubicacion], references: [id], onDelete: Cascade)
+
+  @@index([id_ubicacion])
+  @@index([id_evento])
+  @@index([id_comentario])
+  @@map("recurso")
+}
+
+model Comentario {
+  id           Int              @id @default(autoincrement())
+  texto        String?          @db.Text
+  calificacion Int              @db.TinyInt
+  estado       EstadoComentario @default(PENDIENTE_REVISION)
+  creado_en    DateTime         @default(now())
+  id_usuario   Int
+  id_ubicacion Int
+  ubicacion    Ubicacion        @relation(fields: [id_ubicacion], references: [id], onDelete: Cascade)
+  usuario      Usuario          @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
+  recursos     Recurso[]
+
+  @@unique([id_usuario, id_ubicacion])
+  @@index([id_ubicacion, estado])
+  @@index([id_usuario])
+  @@map("comentario")
+}
+
+model Favorito {
+  id           Int       @id @default(autoincrement())
+  creado_en    DateTime  @default(now())
+  id_usuario   Int
+  id_ubicacion Int
+  ubicacion    Ubicacion @relation(fields: [id_ubicacion], references: [id], onDelete: Cascade)
+  usuario      Usuario   @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
+
+  @@unique([id_usuario, id_ubicacion])
+  @@index([id_usuario])
+  @@index([id_ubicacion])
+  @@map("favorito")
+}
+
+model Evento {
+  id             Int          @id @default(autoincrement())
+  titulo         String       @db.VarChar(180)
+  descripcion    String       @db.Text
+  inicio         DateTime
+  fin            DateTime?
+  lugar_evento   String?      @db.VarChar(255)
+  latitud        Decimal?     @db.Decimal(10, 7)
+  longitud       Decimal?     @db.Decimal(10, 7)
+  es_gratuito    Boolean      @default(false)
+  precio         Decimal?     @db.Decimal(10, 2)
+  contacto       String?      @db.VarChar(255)
+  estado         EstadoEvento @default(BORRADOR)
+  motivo_rechazo String?      @db.Text
+  creado_en      DateTime     @default(now())
+  actualizado_en DateTime     @updatedAt
+  id_organizador Int
+  id_categoria   Int
+  categoria      Categoria    @relation(fields: [id_categoria], references: [id])
+  organizador    Organizador  @relation(fields: [id_organizador], references: [id])
+  recursos       Recurso[]
+
+  @@index([estado, inicio])
+  @@index([id_organizador])
+  @@index([id_categoria])
+  @@map("evento")
+}
+
+model SolicitudRecuperacion {
+  id               Int          @id @default(autoincrement())
+  token            String       @unique @db.VarChar(255)
+  creado_en        DateTime     @default(now())
+  fecha_expiracion DateTime
+  usado            Boolean      @default(false)
+  id_usuario       Int?
+  id_organizador   Int?
+  organizador      Organizador? @relation(fields: [id_organizador], references: [id], onDelete: Cascade)
+  usuario          Usuario?     @relation(fields: [id_usuario], references: [id], onDelete: Cascade)
+
+  @@index([fecha_expiracion])
+  @@index([id_usuario])
+  @@index([id_organizador])
+  @@map("solicitud_recuperacion")
+}
+
+model EmpresaTransporte {
+  id        Int              @id @default(autoincrement())
+  nombre    String           @unique @db.VarChar(150)
+  telefono  String?          @db.VarChar(30)
+  sitio_web String?          @db.VarChar(500)
+  horarios  HorarioOmnibus[]
+
+  @@map("empresa_transporte")
+}
+
+model HorarioOmnibus {
+  id            Int                    @id @default(autoincrement())
+  origen        String                 @db.VarChar(120)
+  destino       String                 @db.VarChar(120)
+  hora_salida   DateTime               @db.Time(0)
+  hora_llegada  DateTime?              @db.Time(0)
+  dias          String                 @db.VarChar(100)
+  tipo_servicio TipoServicioTransporte
+  precio        Decimal?               @db.Decimal(10, 2)
+  estado        EstadoContenido        @default(PUBLICADO)
+  id_empresa    Int
+  empresa       EmpresaTransporte      @relation(fields: [id_empresa], references: [id], onDelete: Cascade)
+
+  @@index([origen, destino])
+  @@index([id_empresa])
+  @@index([tipo_servicio])
+  @@index([estado])
+  @@map("horario_omnibus")
+}
+
+enum Rol {
+  TURISTA
+  ADMINISTRADOR
+}
+
+enum Genero {
+  masculino
+  femenino
+  otro
+}
+
+enum RecursoTipo {
+  VIDEO
+  IMAGEN
+}
+
+enum EstadoContenido {
+  PUBLICADO
+  OCULTADO
+}
+
+enum EstadoComentario {
+  PENDIENTE_REVISION
+  PUBLICADO
+  OCULTADO
+}
+
+enum EstadoEvento {
+  BORRADOR
+  PENDIENTE_REVISION
+  PUBLICADO
+  RECHAZADO
+  CANCELADO
+  FINALIZADO
+}
+
+enum EstadoOrganizador {
+  PENDIENTE_REVISION
+  APROBADO
+  RECHAZADO
+}
+
+enum DocumentoTipo {
+  CEDULA_FRENTE
+  CEDULA_DORSO
+  OTRO
+}
+
+enum TipoServicioTransporte {
+  DEPARTAMENTAL
+  INTERDEPARTAMENTAL
+}

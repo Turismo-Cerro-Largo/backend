@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { createHash, randomBytes } from "node:crypto";
-import { hash } from "@node-rs/argon2";
+import { hash } from "../../services/password.js";
 import { correoSchema, resetSchema } from "./recuperacion.schema.js";
 import { prisma } from "../../configuracion/db.js";
 import { BadRequestError } from "../../configuracion/AppError.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
 import { correoConfigurado, enviarRecuperacion, origenRecuperacion } from "./correo.js";
+import { background, current } from "../../configuracion/runtime.js";
 const app = new Hono();
 const respuesta = {
 	message:
@@ -73,13 +74,15 @@ app.post("/solicitar", async (c) => {
 		admitirIntento("correo:" + datos.data.email, 3) && admitirIntento("envios-global", 100);
 	if (permitido && pendientes < 10) {
 		pendientes++;
-		void procesar(datos.data.email)
-			.catch(() =>
-				console.error("Falló una entrega de recuperación; revisar el servicio de correo."),
-			)
-			.finally(() => {
-				pendientes--;
-			});
+		background(
+			procesar(datos.data.email)
+				.catch(() =>
+					console.error("Falló una entrega de recuperación; revisar el servicio de correo."),
+				)
+				.finally(() => {
+					pendientes--;
+				}),
+		);
 	}
 	return c.json(respuesta, 202);
 });
@@ -108,30 +111,30 @@ app.post("/confirmar", async (c) => {
 		timeCost: 2,
 		parallelism: 1,
 	});
-	await prisma.$transaction(async (tx) => {
-		const cuenta = solicitud.id_usuario
-			? { id_usuario: solicitud.id_usuario }
-			: { id_organizador: solicitud.id_organizador! };
-		// Orden de bloqueos estable para dos recuperaciones concurrentes.
-		if (solicitud.id_usuario)
-			await tx.$queryRaw`SELECT id FROM usuario WHERE id = ${solicitud.id_usuario} FOR UPDATE`;
-		else
-			await tx.$queryRaw`SELECT id FROM organizador WHERE id = ${solicitud.id_organizador} FOR UPDATE`;
-		const consumido = await tx.solicitudRecuperacion.updateMany({
-			where: { id: solicitud.id, usado: false, fecha_expiracion: { gt: new Date() } },
-			data: { usado: true },
-		});
-		if (consumido.count !== 1)
-			throw new BadRequestError("El enlace es inválido o venció. Solicitá uno nuevo.");
-		if (solicitud.id_usuario)
-			await tx.usuario.update({ where: { id: solicitud.id_usuario }, data: { passhash } });
-		else
-			await tx.organizador.update({ where: { id: solicitud.id_organizador! }, data: { passhash } });
-		await tx.solicitudRecuperacion.updateMany({
-			where: { ...cuenta, usado: false },
-			data: { usado: true },
-		});
-	});
+	const db = current().bindings.DB;
+	const table = solicitud.id_usuario ? "usuario" : "organizador";
+	const fk = solicitud.id_usuario ? "id_usuario" : "id_organizador";
+	const id = solicitud.id_usuario ?? solicitud.id_organizador!;
+	const results = await db.batch([
+		db
+			.prepare(
+				"UPDATE " +
+					table +
+					" SET passhash=? WHERE id=? AND EXISTS (SELECT 1 FROM solicitud_recuperacion WHERE id=? AND usado=0 AND (CASE WHEN typeof(fecha_expiracion) IN ('integer','real') THEN fecha_expiracion ELSE (julianday(fecha_expiracion)-2440587.5)*86400000 END)>?)",
+			)
+			.bind(passhash, id, solicitud.id, Date.now()),
+		db
+			.prepare(
+				"UPDATE solicitud_recuperacion SET usado=1 WHERE " +
+					fk +
+					"=? AND usado=0 AND EXISTS (SELECT 1 FROM " +
+					table +
+					" WHERE id=? AND passhash=?)",
+			)
+			.bind(id, id, passhash),
+	]);
+	if (results[0]!.meta.changes !== 1)
+		throw new BadRequestError("El enlace es inválido o venció. Solicitá uno nuevo.");
 	return c.json({ message: "Contraseña actualizada. Ingresá nuevamente con tu nueva contraseña." });
 });
 export { app as RecuperacionRoute };
