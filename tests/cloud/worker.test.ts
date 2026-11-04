@@ -1,4 +1,4 @@
-import { beforeAll, afterAll, describe, it, expect } from "vitest";
+import { beforeAll, afterAll, describe, it, expect, vi } from "vitest";
 import { mkdtemp, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { Miniflare } from "miniflare";
@@ -8,6 +8,7 @@ import { hash, verify } from "../../src/services/password.js";
 import worker from "../../src/index.js";
 import type { Bindings } from "../../src/configuracion/runtime.js";
 let mf: Miniflare, bindings: Bindings;
+const objects = new Map<string, { body: Uint8Array; type: string }>();
 const pending: Promise<unknown>[] = [];
 const ctx = {
 	waitUntil(p: Promise<unknown>) {
@@ -19,7 +20,8 @@ const origin = "http://localhost:5173";
 let cookie = "";
 async function request(route: string, options: RequestInit = {}) {
 	const headers = new Headers(options.headers);
-	if (options.method && options.method !== "GET") headers.set("Origin", origin);
+	if (options.method && options.method !== "GET" && !headers.has("Origin"))
+		headers.set("Origin", origin);
 	if (cookie) headers.set("cookie", cookie);
 	return worker.fetch(
 		new Request("http://localhost:4000/api" + route, { ...options, headers }),
@@ -32,22 +34,63 @@ const png = () =>
 		type: "image/png",
 	});
 beforeAll(async () => {
+	vi.stubGlobal("fetch", async (input: string, init: RequestInit = {}) => {
+		const url = new URL(input),
+			headers = new Headers(init.headers);
+		expect(url.origin).toBe("https://test.supabase.co");
+		expect(headers.get("authorization")).toBe("Bearer test-service-role");
+		expect(headers.get("apikey")).toBe("test-service-role");
+		const key = url.pathname.replace(
+			/^\/storage\/v1\/object\/(authenticated\/)?cerro-largo-files\/?/,
+			"",
+		);
+		if (init.method === "POST") {
+			if (objects.has(key)) return new Response(null, { status: 409 });
+			objects.set(key, {
+				body: new Uint8Array(init.body as ArrayBuffer),
+				type: headers.get("content-type")!,
+			});
+			return Response.json({ Key: key });
+		}
+		if (init.method === "DELETE") {
+			for (const key of JSON.parse(init.body as string).prefixes) objects.delete(key);
+			return Response.json([]);
+		}
+		const object = objects.get(key);
+		if (!object) return Response.json({ statusCode: "404" }, { status: 400 });
+		const range = headers.get("range"),
+			size = object.body.length;
+		const h = new Headers({
+			"content-type": object.type,
+			"content-length": String(size),
+			etag: '"test"',
+		});
+		if (init.method === "HEAD") return new Response(null, { headers: h });
+		if (range) {
+			const [, start, end] = /bytes=(\d+)-(\d+)/.exec(range)!;
+			const body = object.body.slice(Number(start), Number(end) + 1);
+			h.set("content-length", String(body.length));
+			h.set("content-range", "bytes " + start + "-" + end + "/" + size);
+			return new Response(body, { status: 206, headers: h });
+		}
+		return new Response(object.body, { headers: h });
+	});
 	await mkdir(".wrangler", { recursive: true });
 	const dir = await mkdtemp(path.resolve(".wrangler/test-"));
 	mf = new Miniflare({
-		r2Persist: path.join(dir, "r2"),
 		d1Persist: path.join(dir, "d1"),
 		modules: true,
 		script: 'export default {fetch(){return new Response("ok")}}',
 		compatibilityDate: "2026-07-01",
 		d1Databases: ["DB"],
-		r2Buckets: ["FILES"],
 	});
 	const db = await mf.getD1Database("DB");
-	const bucket = await mf.getR2Bucket("FILES");
+
 	bindings = {
 		DB: db as unknown as D1Database,
-		FILES: bucket as unknown as R2Bucket,
+		SUPABASE_URL: "https://test.supabase.co",
+		SUPABASE_SERVICE_ROLE_KEY: "test-service-role",
+		SUPABASE_STORAGE_BUCKET: "cerro-largo-files",
 		COOKIE_SECRET: "test-cookie-secret-64-characters-abcdefghijklmnopqrstuvwxyz123456789",
 		NODE_ENV: "development",
 		APP_PUBLIC_URL: origin,
@@ -63,8 +106,39 @@ beforeAll(async () => {
 afterAll(async () => {
 	await Promise.allSettled(pending);
 	await mf?.dispose();
+	vi.unstubAllGlobals();
 });
-describe("Worker + D1 + R2", () => {
+describe("Worker + D1 + Supabase", () => {
+	it("permite preflight del frontend y rechaza orígenes ajenos en mutaciones", async () => {
+		const r = await request("/auth/login", {
+			method: "OPTIONS",
+			headers: {
+				Origin: origin,
+				"Access-Control-Request-Method": "POST",
+				"Access-Control-Request-Headers": "content-type",
+			},
+		});
+		expect(r.status).toBe(204);
+		expect(r.headers.get("access-control-allow-origin")).toBe(origin);
+		expect(r.headers.get("access-control-allow-credentials")).toBe("true");
+		expect(r.headers.get("access-control-allow-methods")).toContain("POST");
+		const denied = await worker.fetch(
+			new Request("https://api.test/api/auth/login", {
+				method: "POST",
+				headers: { Origin: "https://evil.example", "content-type": "application/json" },
+				body: "{}",
+			}),
+			bindings,
+			ctx,
+		);
+		expect(denied.status).toBe(403);
+		expect(denied.headers.has("access-control-allow-origin")).toBe(false);
+		const preflight = await request("/auth/login", {
+			method: "OPTIONS",
+			headers: { Origin: "https://evil.example", "Access-Control-Request-Method": "POST" },
+		});
+		expect(preflight.headers.has("access-control-allow-origin")).toBe(false);
+	});
 	it("mantiene compatibilidad de hashes Argon2id existentes", async () => {
 		const h = await nativeHash("Password123", { memoryCost: 19456, timeCost: 2, parallelism: 1 });
 		expect(await verify(h, "Password123")).toBe(true);
@@ -77,7 +151,7 @@ describe("Worker + D1 + R2", () => {
 		expect((await request("/admin/organizadores")).status).toBe(401);
 		expect((await request("/turista/perfil")).status).toBe(401);
 	});
-	it("registra organizadores con documentos R2 y rechaza registros incompletos", async () => {
+	it("registra organizadores con documentos Supabase y rechaza registros incompletos", async () => {
 		const bad = new FormData();
 		bad.set("email", "org@gmail.com");
 		expect(
@@ -105,7 +179,7 @@ describe("Worker + D1 + R2", () => {
 		}>();
 		expect(docs.results).toHaveLength(2);
 		const uri = docs.results[0]!.uri;
-		expect(await bindings.FILES.head("privados/" + uri)).not.toBeNull();
+		expect(objects.has("privados/" + uri)).toBe(true);
 		expect((await request("/archivos/privados/" + uri)).status).toBe(200);
 		const own = cookie;
 		cookie = "";
@@ -150,7 +224,7 @@ describe("Worker + D1 + R2", () => {
 		expect((await request("/auth/check")).status).toBe(401);
 		cookie = "";
 	});
-	it("sirve recursos R2 por rangos sin exponer borradores", async () => {
+	it("sirve recursos Supabase por rangos sin exponer borradores", async () => {
 		const db = bindings.DB;
 		await db.prepare("INSERT INTO categoria(nombre) VALUES(?)").bind("Naturaleza").run();
 		await db
@@ -161,8 +235,9 @@ describe("Worker + D1 + R2", () => {
 		await db
 			.prepare("INSERT INTO recurso(uri,tipo,id_ubicacion) VALUES('/publicos/test.mp4','VIDEO',1)")
 			.run();
-		await bindings.FILES.put("publicos/test.mp4", new Uint8Array([0, 1, 2, 3, 4, 5]), {
-			httpMetadata: { contentType: "video/mp4" },
+		objects.set("publicos/test.mp4", {
+			body: new Uint8Array([0, 1, 2, 3, 4, 5]),
+			type: "video/mp4",
 		});
 		const r = await request("/recursos/1", { headers: { range: "bytes=1-3" } });
 		expect(r.status).toBe(206);

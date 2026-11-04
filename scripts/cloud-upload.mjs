@@ -2,13 +2,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+
 const mode = process.argv[2];
-if (!["--local", "--remote"].includes(mode))
-	throw Error("Indicar --local o --remote explícitamente");
+if (mode !== "--remote") throw Error("Indicar --remote: carga en Supabase real.");
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const config = JSON.parse(fs.readFileSync(path.join(root, "wrangler.jsonc"), "utf8"));
-const bucket = config.r2_buckets[0].bucket_name;
+const {SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET} = process.env;
+if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY || !SUPABASE_STORAGE_BUCKET) throw Error("Completar Supabase en .dev.vars");
+const base = new URL(SUPABASE_URL);
+if (base.protocol !== "https:" || base.pathname !== "/" || base.username || base.password || base.search || base.hash) throw Error("SUPABASE_URL inválida");
 const mime = {
 	jpg: "image/jpeg",
 	jpeg: "image/jpeg",
@@ -30,25 +31,16 @@ function walk(dir, prefix) {
 	}
 }
 walk(path.join(root, "auto"), "publicos");
-for (const dir of ["publicos", "privados", "privado/perfiles", "publico/eventos", "publico/demo"])
+for (const dir of (process.argv.includes("--include-existing") ? ["publicos", "privados", "privado/perfiles", "publico/eventos", "publico/demo"] : []))
 	walk(path.join(root, dir), dir);
 for (const [key, file] of files) {
-	const r = spawnSync(
-		process.execPath,
-		[
-			path.join(root, "node_modules/wrangler/bin/wrangler.js"),
-			"r2",
-			"object",
-			"put",
-			bucket + "/" + key,
-			"--file",
-			file,
-			"--content-type",
-			mime[path.extname(file).slice(1).toLowerCase()],
-			mode,
-		],
-		{ cwd: root, stdio: "inherit" },
-	);
-	if (r.status !== 0) throw Error("Falló carga: " + key);
+ if (!/^(publicos|privados|privado\/perfiles|publico\/eventos|publico\/demo)\/(?:seed\/)?[a-zA-Z0-9_-]+\.[a-z0-9]+$/.test(key)) throw Error("Ruta inválida: " + key);
+ const response = await fetch(base.origin + "/storage/v1/object/" + encodeURIComponent(SUPABASE_STORAGE_BUCKET) + "/" + key, {method: "POST", redirect: "error", signal: AbortSignal.timeout(30000), headers: {apikey: SUPABASE_SERVICE_ROLE_KEY, Authorization: "Bearer " + SUPABASE_SERVICE_ROLE_KEY, "Content-Type": mime[path.extname(file).slice(1).toLowerCase()], "x-upsert": "false"}, body: fs.readFileSync(file)});
+ if (!response.ok) {
+  const detail = await response.json().catch(()=>null);
+  if(response.status===409 || detail?.statusCode==="409" || detail?.error==="Duplicate") { console.log("Ya existe: "+key); continue; }
+  throw Error("Falló carga: " + key + " (HTTP " + response.status + ")");
+ }
+ await response.body?.cancel();
 }
 console.log(files.size + " objetos procesados. Mantener el bucket privado.");

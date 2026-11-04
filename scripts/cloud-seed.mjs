@@ -31,7 +31,7 @@ function visit(n) {
 	if (!n || typeof n !== "object") return;
 	if (
 		n.type === "VariableDeclarator" &&
-		["localidades", "categorias", "ubicaciones"].includes(n.id.name)
+		["localidades", "categorias", "ubicaciones", "usuarios", "organizadores", "eventos", "viajes"].includes(n.id.name)
 	)
 		data[n.id.name] = literal(n.init);
 	for (const v of Object.values(n)) {
@@ -106,3 +106,5 @@ console.log(
 		data.localidades.length +
 		" localidades. No se escribió en ninguna base.",
 );
+
+export { data };

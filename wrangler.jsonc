@@ -6,28 +6,21 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "workers_dev": false,
-  "limits": {
-    "cpu_ms": 30000
-  },
+  "workers_dev": true,
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "cerro-largo",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "ca0a3c08-56a4-4a09-adb2-4dd748f9e9bf",
       "migrations_dir": "migrations/d1"
-    }
-  ],
-  "r2_buckets": [
-    {
-      "binding": "FILES",
-      "bucket_name": "cerro-largo-files"
     }
   ],
   "vars": {
     "NODE_ENV": "production",
-    "APP_PUBLIC_URL": "https://CONFIGURAR-FRONTEND.example",
-    "APP_ORIGINS": "https://CONFIGURAR-FRONTEND.example"
+    "APP_PUBLIC_URL": "https://frontend-baa4tscpm.vercel.app",
+    "APP_ORIGINS": "https://frontend-baa4tscpm.vercel.app",
+    "SUPABASE_STORAGE_BUCKET": "cerro-largo-files",
+    "GOOGLE_REDIRECT_URI": "https://frontend-baa4tscpm.vercel.app/api/auth/google"
   },
   "observability": {
     "enabled": true

@@ -20,6 +20,10 @@ export const Configuracion = (app: Hono) => {
 		cors({
 			origin: (origin) => (origenesPermitidos().includes(origin) ? origin : undefined),
 			credentials: true,
+			allowMethods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+			allowHeaders: ["Content-Type", "Range", "If-Range"],
+			exposeHeaders: ["Content-Length", "Content-Range", "ETag"],
+			maxAge: 600,
 		}),
 	);
 	app.use("*", async (c, next) => csrf({ origin: origenesPermitidos() })(c, next));

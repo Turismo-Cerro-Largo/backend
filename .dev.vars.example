@@ -4,3 +4,16 @@ APP_PUBLIC_URL=http://localhost:5173
 APP_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 GOOGLE_ID=
 GOOGLE_SECRET=
+
+# Bucket PRIVADO. Clave service_role exclusivamente en backend.
+SUPABASE_URL=https://TU-PROYECTO.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_STORAGE_BUCKET=cerro-largo-files
+
+# Seed completo: elegir claves propias (12-32 caracteres, mayúscula, minúscula y número).
+SEED_ADMIN_PASSWORD=
+SEED_USUARIO_PASSWORD=
+SEED_ORGANIZADOR_PASSWORD=
+
+# Registrar también esta URI de desarrollo en Google Cloud si se prueba localmente.
+GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google

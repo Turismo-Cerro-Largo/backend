@@ -5,6 +5,7 @@ const schema = z.object({
 	NODE_ENV: z.enum(["development", "production", "test"]).default("production"),
 	GOOGLE_ID: z.string().optional(),
 	GOOGLE_SECRET: z.string().optional(),
+	GOOGLE_REDIRECT_URI: z.string().optional(),
 	APP_PUBLIC_URL: z.string().url(),
 	APP_ORIGINS: z.string().min(1),
 	MAIL_FROM: z.string().email().optional(),

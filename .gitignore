@@ -55,3 +55,6 @@ prisma/*.db*
 .pnpm-store/
 
 .npm-cache/
+
+# SQL generado con hashes de las cuentas de seed
+/seed/completo.sql

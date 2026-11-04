@@ -18,7 +18,9 @@
 		"test:cloud": "wrangler deploy --dry-run --outdir dist && vitest run --config vitest.cloud.config.ts",
 		"seed:generate": "node scripts/cloud-seed.mjs",
 		"seed:local": "node scripts/cloud-seed.mjs && wrangler d1 execute DB --local --file seed/catalogo.sql",
-		"files:local": "node scripts/cloud-upload.mjs --local"
+		"files:upload": "node --env-file=.dev.vars scripts/cloud-upload.mjs --remote",
+		"seed:full:generate": "node --env-file=.dev.vars scripts/cloud-seed-full.mjs",
+		"seed:full:remote": "pnpm seed:full:generate && pnpm files:upload && wrangler d1 execute DB --remote --file seed/completo.sql"
 	},
 	"dependencies": {
 		"@hono/oauth-providers": "^0.9.0",
