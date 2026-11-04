@@ -164,7 +164,7 @@ async function main() {
             apellidos: 'usuario',
             email: 'usuario@gmail.com',
             rol: 'TURISTA',
-            password: 'Usuario#123',
+            password: 'Usuario#12345',
             departamento: 'Cerro Largo',
             genero: 'otro'
         },
@@ -173,7 +173,7 @@ async function main() {
             apellidos: 'admin',
             email: 'admin@gmail.com',
             rol: 'ADMINISTRADOR',
-            password: 'Admin#12345',
+            password: 'Admin#123456',
             departamento: 'Cerro Largo'
         }
     ];
@@ -190,7 +190,7 @@ async function main() {
             telefono: '099123456',
             departamento: 'Cerro Largo',
             estado: 'APROBADO',
-            password: 'Organizador#123'
+            password: 'Organizador#12345'
         }
     ];
 
