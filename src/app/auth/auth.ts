@@ -1,5 +1,6 @@
 import { origenRecuperacion } from "./correo.js";
 import { RecuperacionRoute, admitirIntento } from "./recuperacion.js";
+
 // src/app/auth/auth.ts
 import { hash, verify } from "@node-rs/argon2";
 import { unlink } from "node:fs/promises";
@@ -20,8 +21,16 @@ import {
 	VERSION_DOCUMENTOS_ORGANIZADOR,
 } from "./auth.schema.js";
 import { crear_sesion, leerSesion } from "../../middleware/Session.js";
+import {
+    VerificacionRoute,
+    emitirCodigoRegistro
+} from "./verificacion.js";
+
+
+import { correoConfigurado } from "./correo.js";
 
 const app = new Hono();
+app.route("/verificacion", VerificacionRoute);
 app.route("/recuperacion", RecuperacionRoute);
 async function correoEnUso(email: string) {
 	const [usuario, organizador] = await Promise.all([
@@ -52,6 +61,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c, next) => {
 			id: true,
 			passhash: true,
 			rol: true,
+			email_verificado: true,
 		},
 	});
 
@@ -61,6 +71,8 @@ app.post("/login", bodyLimitado(32, "KB"), async (c, next) => {
 		select: {
 			id: true,
 			passhash: true,
+			email_verificado: true,
+
 		},
 	});
 
@@ -76,6 +88,11 @@ app.post("/login", bodyLimitado(32, "KB"), async (c, next) => {
 	if (!check) {
 		throw new BadRequestError();
 	}
+	if (!cuenta.email_verificado) {
+    return c.json({
+        message: "Primero debés verificar tu correo electrónico."
+    }, 403);
+}
 
 	const tipo = usuario ? "usuario" : "organizador";
 
@@ -94,6 +111,20 @@ app.post("/register", bodyLimitado(64, "KB"), verificarTurnstile("register"), as
 	if (!datos.success) {
 		throw new BadRequestError();
 	}
+	if (!correoConfigurado()) {
+    return c.json({
+        message: "El servicio de correo no está configurado."
+    }, 503);
+}
+
+if (
+    !admitirIntento(`registro:${datos.data.email}`, 3) ||
+    !admitirIntento("registros-global", 100)
+) {
+    return c.json({
+        message: "Demasiados intentos de registro."
+    }, 429);
+}
 
 	if (await correoEnUso(datos.data.email)) throw new ConflictError("Ese correo ya está registrado.");
 
@@ -110,16 +141,28 @@ app.post("/register", bodyLimitado(64, "KB"), verificarTurnstile("register"), as
 	// Crear el usuario
 	const usuario = await prisma.usuario.create({
 		data: {
+			email_verificado: false,
 			...datosUsuario,
 			fecha_nacimiento: new Date(`${fecha_nacimiento}T00:00:00.000Z`),
 			passhash,
 		},
 	});
 
-	// Cookie para guardar la sesion
-	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol });
+let enviado = true;
 
-	return c.json({ message: "Exito" }, 201);
+try {
+    await emitirCodigoRegistro(usuario.email, "TURISTA");
+} catch {
+    enviado = false;
+    console.error("Falló el correo de registro del turista.");
+}
+
+return c.json({
+    message: enviado
+        ? "Te enviamos un código de verificación."
+        : "Cuenta creada. Solicitá el reenvío del código.",
+    enviado
+}, 201);
 });
 
 // registro
@@ -152,12 +195,28 @@ app.post(
 		const datos = auth_organizador_register_scheem.safeParse(await c.req.parseBody());
 
 		if (!datos.success) throw new BadRequestError();
+		if (!correoConfigurado()) {
+    return c.json({
+        message: "El servicio de correo no está configurado."
+    }, 503);
+}
+
+if (
+    !admitirIntento(`registro:${datos.data.email}`, 3) ||
+    !admitirIntento("registros-global", 100)
+) {
+    return c.json({
+        message: "Demasiados intentos de registro."
+    }, 429);
+}
 
 		if (await correoEnUso(datos.data.email)) throw new ConflictError("Ese correo ya está registrado.");
 
 		organizador = await prisma.organizador.create({
 			data: {
 				email: datos.data.email,
+				email_verificado: false,
+                estado: "PENDIENTE_REVISION",
 				nombre_organizacion: datos.data.nombreOrganizacion,
 				rut_ruc: datos.data.rut,
 				departamento: datos.data.departamento,
@@ -183,9 +242,24 @@ app.post(
 		throw e;
 	}
 
-	await crear_sesion(c, { tipo: "organizador", id: organizador.id, rol: "ORGANIZADOR" });
+	let enviado = true;
 
-	return c.json({ message: "Exito" }, 201);
+try {
+    await emitirCodigoRegistro(
+        organizador.email,
+        "ORGANIZADOR"
+    );
+} catch {
+    enviado = false;
+    console.error("Falló el correo de registro del organizador.");
+}
+
+return c.json({
+    message: enviado
+        ? "Verificá tu correo para continuar."
+        : "Solicitud creada. Solicitá otro código.",
+    enviado
+}, 201);
 });
 
 // login-register mediante google
@@ -210,10 +284,14 @@ app.get("/google", Google(), async (c: Context) => {
 				apellidos: google.family_name ?? "",
 				email: google.email,
 				sub: google.id,
+				email_verificado: true,
 			},
 		});
-	} else if (!usuario.sub) {
-		usuario = await prisma.usuario.update({ where: { id: usuario.id }, data: { sub: google.id } });
+	} else if (!usuario.sub || !usuario.email_verificado) {
+		usuario = await prisma.usuario.update({
+			where: { id: usuario.id },
+			data: { sub: google.id, email_verificado: true },
+		});
 	}
 
 	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol });

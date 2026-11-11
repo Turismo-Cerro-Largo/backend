@@ -67,4 +67,70 @@ export async function enviarRecuperacion(email: string, token: string) {
     } finally {
         transport.close();
     }
+
+    
+}
+export async function enviarCodigoRegistro(
+    email: string,
+    codigo: string
+) {
+    if (!correoConfigurado()) {
+        throw new Error("El correo no está configurado.");
+    }
+
+    const gmail = cuentaGmail();
+
+    const mensaje = {
+        from: {
+            name: process.env.MAIL_FROM_NAME?.trim()
+                || "Cerro Largo 360",
+            address: gmail?.user || "no-reply@example.invalid"
+        },
+        to: email,
+        subject: "Verificá tu cuenta - Cerro Largo 360",
+        text: `
+¡Bienvenido a Cerro Largo 360!
+
+Tu código de verificación es:
+
+${codigo}
+
+Tenés 15 minutos para ingresarlo en nuestra web.
+
+Si no solicitaste esta cuenta, ignorá este correo.
+        `.trim()
+    };
+
+    // Conserva la modalidad local para pruebas.
+    if (process.env.MAIL_MODE === "local") {
+        const dir = path.resolve(".local-mail");
+        await mkdir(dir, { recursive: true });
+
+        await writeFile(
+            path.join(dir, `${randomUUID()}.json`),
+            JSON.stringify(mensaje, null, 2),
+            { flag: "wx", mode: 0o600 }
+        );
+        return;
+    }
+
+    if (!gmail) {
+        throw new Error("Falta configurar Gmail.");
+    }
+
+    const transporte = nodemailer.createTransport({
+        service: "gmail",
+        auth: gmail,
+        connectionTimeout: 10000,
+        greetingTimeout: 10000,
+        socketTimeout: 15000,
+        disableFileAccess: true,
+        disableUrlAccess: true
+    });
+
+    try {
+        await transporte.sendMail(mensaje);
+    } finally {
+        transporte.close();
+    }
 }
