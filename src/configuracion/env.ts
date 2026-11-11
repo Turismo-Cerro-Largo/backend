@@ -14,6 +14,8 @@ export const env = z
 
 		// Security
 		COOKIE_SECRET: z.string().min(32),
+		TURNSTILE_SECRET_KEY: z.string().trim().optional(),
+		TURNSTILE_HOSTNAME: z.string().trim().optional(),
 
 		// Google
 		GOOGLE_ID: z.string().optional(),

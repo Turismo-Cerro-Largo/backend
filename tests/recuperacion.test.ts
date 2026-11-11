@@ -8,11 +8,13 @@ import { app } from "../src/app.js";
 import { prisma } from "../src/configuracion/db.js";
 import { crear_sesion } from "../src/middleware/Session.js";
 import { correoConfigurado } from "../src/app/auth/correo.js";
+import { formularioTurnstile, simularTurnstile } from "./turnstile.helper.js";
 
 const aislada =
 	process.env.TURISTA_TEST_DB === process.env.DATABASE_NAME &&
 	/^cerrolargo_turista_test_[a-z0-9]+$/.test(process.env.DATABASE_NAME || "");
 describe.skipIf(!aislada)("recuperación y seguridad", () => {
+	simularTurnstile();
 	const marca = randomUUID().slice(0, 8),
 		email = `reset.${marca}@gmail.com`,
 		orgEmail = `orgreset.${marca}@gmail.com`;
@@ -149,7 +151,7 @@ describe.skipIf(!aislada)("recuperación y seguridad", () => {
 			[nuevo, 200],
 			["AnteriorSegura2026", 400],
 		] as const) {
-			const form = new FormData();
+			const form = formularioTurnstile("login");
 			form.set("email", email);
 			form.set("password", password);
 			expect(
@@ -208,7 +210,7 @@ describe.skipIf(!aislada)("recuperación y seguridad", () => {
 		expect((await app.request("/api/archivos/publicos/no-existe.jpg")).status).toBe(404);
 	});
 	it("rechaza un archivo disfrazado de imagen en el registro del organizador", async () => {
-		const form = new FormData();
+		const form = formularioTurnstile("register-organizador");
 		form.set("email", `upload.${marca}@gmail.com`);
 		form.set("password", "PruebaSegura2026");
 		form.set("nombreOrganizacion", "Prueba");

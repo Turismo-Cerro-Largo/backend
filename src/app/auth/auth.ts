@@ -12,6 +12,7 @@ import { env } from "../../configuracion/env.js";
 import { ArchivosPrivados } from "../../middleware/Archivos.js";
 import { Google } from "../../middleware/Google.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
+import { verificarTurnstile } from "../../middleware/Turnstile.js";
 import {
 	auth_organizador_register_scheem,
 	auth_usuario_login_scheem,
@@ -31,12 +32,15 @@ async function correoEnUso(email: string) {
 }
 
 // Login
-app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
+app.post("/login", bodyLimitado(32, "KB"), async (c, next) => {
+	if (!admitirIntento("login-global", 500)) return c.json({ message: "Demasiados intentos. Esperá unos minutos." }, 429);
+	await next();
+}, verificarTurnstile("login"), async (c: Context) => {
 	const body = await c.req.parseBody();
 
 	// Verificar el formulario
 	const datos = auth_usuario_login_scheem.safeParse(body);
-    if (!admitirIntento('login-global',500) || (datos.success && !admitirIntento('login:'+datos.data.email.toLowerCase(),20))) return c.json({message:'Demasiados intentos. Esperá unos minutos.'},429);
+	if (datos.success && !admitirIntento("login:" + datos.data.email.toLowerCase(), 20)) return c.json({ message: "Demasiados intentos. Esperá unos minutos." }, 429);
 	if (!datos.success) {
 		throw new BadRequestError();
 	}
@@ -82,7 +86,7 @@ app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
 });
 
 // Registro del usuario
-app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
+app.post("/register", bodyLimitado(64, "KB"), verificarTurnstile("register"), async (c: Context) => {
 	const body = await c.req.parseBody();
 
 	// Verificar el formulario
@@ -138,6 +142,7 @@ app.post(
 
         await next();
     },
+    verificarTurnstile("register-organizador"),
     ArchivosPrivados(),
     async (c: Context) => {
 

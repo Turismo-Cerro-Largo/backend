@@ -7,12 +7,14 @@ import { app } from "../src/app.js";
 import { prisma } from "../src/configuracion/db.js";
 import { crear_sesion } from "../src/middleware/Session.js";
 import { borrarFoto } from "../src/app/turista/fotos.js";
+import { formularioTurnstile, simularTurnstile } from "./turnstile.helper.js";
 
 // Nunca ejecutar esta suite sobre la base compartida o de producción.
 const aislada =
 	process.env.TURISTA_TEST_DB === process.env.DATABASE_NAME &&
 	/^cerrolargo_turista_test_[a-z0-9]+$/.test(process.env.DATABASE_NAME || "");
 describe.skipIf(!aislada)("panel de turista: integración con MySQL", () => {
+	simularTurnstile();
 	const marca = randomUUID().slice(0, 8);
 	const email = `turista.${marca}@gmail.com`;
 	let orgId: number;
@@ -156,7 +158,7 @@ describe.skipIf(!aislada)("panel de turista: integración con MySQL", () => {
         }
     });
 	it("el login existente emite una sesión válida de turista", async () => {
-		const form = new FormData();
+		const form = formularioTurnstile("login");
 		form.set("email", email);
 		form.set("password", "PruebaTurista2026");
 		const res = await app.request("/api/auth/login", { method: "POST", headers:{origin}, body: form });
