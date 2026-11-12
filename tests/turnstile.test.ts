@@ -2,6 +2,7 @@ import { type Context, Hono } from "hono";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { env } from "../src/configuracion/env.js";
 import { verificarTurnstile } from "../src/middleware/Turnstile.js";
+import { correoSchema } from "../src/app/auth/recuperacion.schema.js";
 
 vi.mock("../src/configuracion/env.js", () => ({
 	env: { TURNSTILE_SECRET_KEY: "secreto-de-prueba", TURNSTILE_HOSTNAME: "localhost" },
@@ -33,6 +34,27 @@ describe("middleware Turnstile", () => {
 		vi.unstubAllGlobals();
 		siteverify.mockReset();
 		siguiente.mockClear();
+	});
+
+	it("valida el token de recuperación y conserva el cuerpo JSON", async () => {
+		const action = "recuperar-contrasena";
+		app.post("/recuperacion", verificarTurnstile(action, "json"), async (c) => {
+			const { email } = correoSchema.parse(await c.req.json());
+			return c.json({ email }, 202);
+		});
+		const email = "prueba@example.com";
+		const enviar = (turnstileToken?: string) => app.request("/recuperacion", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ email, turnstileToken }),
+		});
+		expect((await enviar()).status).toBe(400);
+		siteverify.mockResolvedValueOnce(Response.json({ success: true, action: "login", hostname: "localhost" }));
+		expect((await enviar("token-de-login")).status).toBe(400);
+		siteverify.mockResolvedValueOnce(Response.json({ success: true, action, hostname: "localhost" }));
+		const res = await enviar("token-de-recuperacion");
+		expect(res.status).toBe(202);
+		expect(await res.json()).toEqual({ email });
 	});
 
 	it.each(acciones)("permite %s con un token válido y conserva el formulario", async (action) => {

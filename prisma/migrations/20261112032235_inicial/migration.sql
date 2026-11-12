@@ -4,6 +4,7 @@ CREATE TABLE `usuario` (
     `nombres` VARCHAR(100) NOT NULL,
     `apellidos` VARCHAR(100) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
+    `email_verificado` BOOLEAN NOT NULL DEFAULT true,
     `departamento` VARCHAR(100) NULL,
     `localidad` VARCHAR(120) NULL,
     `foto_perfil` VARCHAR(255) NULL,
@@ -31,6 +32,7 @@ CREATE TABLE `organizador` (
     `rut_ruc` VARCHAR(30) NULL,
     `departamento` VARCHAR(100) NULL,
     `email` VARCHAR(191) NOT NULL,
+    `email_verificado` BOOLEAN NOT NULL DEFAULT true,
     `telefono` VARCHAR(30) NOT NULL,
     `sitio_web` VARCHAR(500) NULL,
     `passhash` VARCHAR(255) NOT NULL,
@@ -229,6 +231,21 @@ CREATE TABLE `horario_omnibus` (
     INDEX `horario_omnibus_id_empresa_idx`(`id_empresa`),
     INDEX `horario_omnibus_tipo_servicio_idx`(`tipo_servicio`),
     INDEX `horario_omnibus_estado_idx`(`estado`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `verificacion_correo` (
+    `id` INTEGER NOT NULL AUTO_INCREMENT,
+    `email` VARCHAR(254) NOT NULL,
+    `tipo` ENUM('TURISTA', 'ORGANIZADOR') NOT NULL,
+    `codigo_hash` VARCHAR(64) NOT NULL,
+    `expira_en` DATETIME(3) NOT NULL,
+    `enviado_en` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `intentos` INTEGER NOT NULL DEFAULT 0,
+
+    UNIQUE INDEX `verificacion_correo_email_key`(`email`),
+    INDEX `verificacion_correo_expira_en_idx`(`expira_en`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

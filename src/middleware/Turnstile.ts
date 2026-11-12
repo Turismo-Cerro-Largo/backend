@@ -1,9 +1,9 @@
 import { createMiddleware } from "hono/factory";
 import { env } from "../configuracion/env.js";
 
-type Accion = "login" | "register" | "register-organizador";
+type Accion = "login" | "register" | "register-organizador" | "recuperar-contrasena";
 
-export const verificarTurnstile = (accion: Accion) =>
+export const verificarTurnstile = (accion: Accion, formato: "form" | "json" = "form") =>
 	createMiddleware(async (c, next) => {
 		const rechazar = () => c.json({
 			code: "TURNSTILE_INVALID",
@@ -14,7 +14,7 @@ export const verificarTurnstile = (accion: Accion) =>
 			message: "La verificación de seguridad no está disponible. Volvé a intentar en unos minutos.",
 		}, 503);
 
-		const body = await c.req.parseBody({ all: true }).catch(() => null);
+		const body = await (formato === "json" ? c.req.json() : c.req.parseBody({ all: true })).catch(() => null);
 		const token = body?.turnstileToken;
 		if (typeof token !== "string" || !token.trim() || token.length > 2048) return rechazar();
 		if (!env.TURNSTILE_SECRET_KEY) return noDisponible();
