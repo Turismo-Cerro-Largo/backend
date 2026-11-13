@@ -25,3 +25,7 @@ TURNSTILE_HOSTNAME=
 # Remitente verificado de Cloudflare Email Service.
 MAIL_FROM=
 MAIL_FROM_NAME=Cerro Largo 360
+
+# Gmail opcional si no se configura el binding EMAIL.
+GMAIL_USER=
+GMAIL_APP_PASSWORD=

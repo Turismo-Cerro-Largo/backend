@@ -10,6 +10,8 @@ const schema = z.object({
 	APP_ORIGINS: z.string().min(1),
 	TURNSTILE_SECRET_KEY: z.string().trim().optional(),
 	TURNSTILE_HOSTNAME: z.string().trim().optional(),
+	GMAIL_USER: z.string().trim().optional(),
+	GMAIL_APP_PASSWORD: z.string().optional(),
 	MAIL_FROM: z.string().email().optional(),
 	MAIL_FROM_NAME: z.string().optional(),
 });

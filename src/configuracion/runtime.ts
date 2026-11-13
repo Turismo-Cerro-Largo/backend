@@ -14,6 +14,8 @@ export interface Bindings {
 	GOOGLE_REDIRECT_URI?: string;
 	TURNSTILE_SECRET_KEY?: string;
 	TURNSTILE_HOSTNAME?: string;
+	GMAIL_USER?: string;
+	GMAIL_APP_PASSWORD?: string;
 	MAIL_FROM?: string;
 	MAIL_FROM_NAME?: string;
 	EMAIL?: {
