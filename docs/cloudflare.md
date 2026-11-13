@@ -36,7 +36,7 @@ Argon2id usa @noble/hashes (JavaScript portable), conserva el formato PHC compat
 
 El cliente Prisma se crea por request y se libera con waitUntil. Los bindings y secretos se aíslan con AsyncLocalStorage; no se escriben en process.env. Las escrituras relacionadas usan batch D1 atómico: recuperación, registro con documentos, recursos y edición de localidades. No usar Prisma.$transaction: el adaptador D1 no brinda transacciones interactivas.
 
-La recuperación usa Cloudflare Email Service opcional: habilitar un dominio remitente verificado, agregar send_email: [{name: "EMAIL"}] a wrangler.jsonc y MAIL_FROM. No se incluye un dominio ficticio ni se envían correos de prueba a personas. Sin esas opciones, la API devuelve 503. El envío se registra en waitUntil; una cola persistente sería necesaria para reintentos garantizados. Gmail/Nodemailer por SMTP no forma parte del Worker.
+El registro y la recuperación usan Cloudflare Email Service: habilitar un dominio remitente verificado, agregar send_email: [{name: "EMAIL"}] a wrangler.jsonc y MAIL_FROM. No se incluye un dominio ficticio ni se envían correos de prueba a personas. Sin esas opciones, el registro y la recuperación devuelven 503. Configurá TURNSTILE_SECRET_KEY como secreto del Worker y PUBLIC_TURNSTILE_SITE_KEY en Vercel. Si configurás TURNSTILE_HOSTNAME, usá el host exacto del frontend. Aplicá la migración D1 de verificación antes de desplegar el Worker. El envío se registra en waitUntil; una cola persistente sería necesaria para reintentos garantizados. Gmail/Nodemailer por SMTP no forma parte del Worker.
 
 ## Verificar sin publicar
 

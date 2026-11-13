@@ -18,6 +18,7 @@ const ctx = {
 } as ExecutionContext;
 const origin = "http://localhost:5173";
 let cookie = "";
+const codigos: string[] = [];
 async function request(route: string, options: RequestInit = {}) {
 	const headers = new Headers(options.headers);
 	if (options.method && options.method !== "GET" && !headers.has("Origin"))
@@ -37,6 +38,7 @@ beforeAll(async () => {
 	vi.stubGlobal("fetch", async (input: string, init: RequestInit = {}) => {
 		const url = new URL(input),
 			headers = new Headers(init.headers);
+		if (url.origin === "https://challenges.cloudflare.com") return Response.json({ success: true, action: (init.body as URLSearchParams).get("response"), hostname: "localhost" });
 		expect(url.origin).toBe("https://test.supabase.co");
 		expect(headers.get("authorization")).toBe("Bearer test-service-role");
 		expect(headers.get("apikey")).toBe("test-service-role");
@@ -95,8 +97,11 @@ beforeAll(async () => {
 		NODE_ENV: "development",
 		APP_PUBLIC_URL: origin,
 		APP_ORIGINS: origin,
+		TURNSTILE_SECRET_KEY: "test-turnstile",
+		MAIL_FROM: "no-reply@example.test",
+		EMAIL: { send: async ({ text }) => { codigos.push(text.match(/\d{6}/)![0]); } },
 	};
-	const sql = await readFile("migrations/d1/0001_initial.sql", "utf8");
+	const sql = (await readFile("migrations/d1/0001_initial.sql", "utf8")) + (await readFile("migrations/d1/0002_verificacion_correo.sql", "utf8"));
 	for (const statement of sql
 		.split(";")
 		.map((s) => s.trim())
@@ -169,11 +174,28 @@ describe("Worker + D1 + Supabase", () => {
 			versionDocumentos: "2026-10-28-v1",
 		}))
 			f.set(k, v);
+		f.set("turnstileToken", "register-organizador");
 		f.set("fotoCedulaFrente", png());
 		f.set("fotoCedulaDorso", png());
 		const response = await request("/auth/register-organizador", { method: "POST", body: f });
 		expect(response.status, await response.clone().text()).toBe(201);
-		cookie = response.headers.get("set-cookie")!.split(";")[0]!;
+		expect(response.headers.get("set-cookie")).toBeNull();
+		const login = new FormData();
+		login.set("email", "org@gmail.com");
+		login.set("password", "Password123");
+		login.set("turnstileToken", "login");
+		expect((await request("/auth/login", { method: "POST", body: login })).status).toBe(403);
+		const confirmar = () => request("/auth/verificacion/confirmar", {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify({ email: "org@gmail.com", codigo: codigos[0] }),
+		});
+		const confirmaciones = await Promise.all([confirmar(), confirmar()]);
+		expect(confirmaciones.map(r => r.status).sort()).toEqual([200, 400]);
+		expect(await bindings.DB.prepare("SELECT COUNT(*) AS n FROM verificacion_correo").first("n")).toBe(0);
+		const sesion = await request("/auth/login", { method: "POST", body: login });
+		expect(sesion.status, await sesion.clone().text()).toBe(200);
+		cookie = sesion.headers.get("set-cookie")!.split(";")[0]!;
 		const docs = await bindings.DB.prepare("SELECT uri FROM documento_organizador").all<{
 			uri: string;
 		}>();
@@ -270,6 +292,7 @@ describe("Worker + D1 + Supabase", () => {
 			.run();
 		const login = new FormData();
 		login.set("email", "admin@gmail.com");
+		login.set("turnstileToken", "login");
 		login.set("password", "NuevaPassword123");
 		const r = await request("/auth/login", { method: "POST", body: login });
 		expect(r.status).toBe(200);
@@ -337,7 +360,7 @@ describe("Worker + D1 + Supabase", () => {
 		const r = await request("/auth/recuperacion/solicitar", {
 			method: "POST",
 			headers: { "content-type": "application/json" },
-			body: JSON.stringify({ email: "org@gmail.com" }),
+			body: JSON.stringify({ email: "org@gmail.com", turnstileToken: "recuperar-contrasena" }),
 		});
 		expect(r.status).toBe(202);
 		await Promise.allSettled(pending);

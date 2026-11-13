@@ -8,6 +8,10 @@ it("ejecuta el bundle completo en workerd y registra una cuenta en D1", async ()
 	let uploads = 0;
 	const mf = new Miniflare({
 		outboundService: async (request) => {
+			if (new URL(request.url).origin === "https://challenges.cloudflare.com") {
+				const body = await request.formData();
+				return Response.json({ success: true, action: body.get("response"), hostname: "localhost" });
+			}
 			expect(new URL(request.url).origin).toBe("https://test.supabase.co");
 			expect(request.headers.get("authorization")).toBe("Bearer test-service-role");
 			expect(request.method).toBe("POST");
@@ -16,6 +20,7 @@ it("ejecuta el bundle completo en workerd y registra una cuenta en D1", async ()
 			return Response.json({ Key: "test" });
 		},
 		modules: [
+			{ type: "ESModule", path: path.resolve("dist/test-entry.js"), contents: 'import worker from "./index.js"; export default { fetch(request, env, ctx) { return worker.fetch(request, { ...env, EMAIL: { async send() {} } }, ctx); } };' },
 			{ type: "ESModule", path: path.resolve("dist/index.js") },
 			...(await readdir("dist"))
 				.filter((f) => f.endsWith(".wasm"))
@@ -33,11 +38,13 @@ it("ejecuta el bundle completo en workerd y registra una cuenta en D1", async ()
 			NODE_ENV: "development",
 			APP_PUBLIC_URL: "http://localhost:5173",
 			APP_ORIGINS: "http://localhost:5173",
+			TURNSTILE_SECRET_KEY: "test-turnstile",
+			MAIL_FROM: "no-reply@example.test",
 		},
 	});
 	try {
 		const db = await mf.getD1Database("DB");
-		for (const sql of (await readFile("migrations/d1/0001_initial.sql", "utf8"))
+		for (const sql of ((await readFile("migrations/d1/0001_initial.sql", "utf8")) + (await readFile("migrations/d1/0002_verificacion_correo.sql", "utf8")))
 			.split(";")
 			.map((s) => s.trim())
 			.filter(Boolean))
@@ -55,6 +62,7 @@ it("ejecuta el bundle completo en workerd y registra una cuenta en D1", async ()
 			password: "Password123",
 		}))
 			form.set(k, v);
+		form.set("turnstileToken", "register");
 		const upload = new Request("http://localhost/api/auth/register", {
 			method: "POST",
 			headers: { origin: "http://localhost:5173" },
@@ -66,16 +74,8 @@ it("ejecuta el bundle completo en workerd y registra una cuenta en D1", async ()
 			body: new Uint8Array(await upload.arrayBuffer()),
 		});
 		expect(r.status, await r.clone().text()).toBe(201);
-		const cookie = r.headers.get("set-cookie")!.split(";")[0]!;
-		const check = await mf.dispatchFetch("http://localhost/api/auth/check", {
-			headers: { cookie },
-		});
-		expect(check.status, await check.clone().text()).toBe(200);
-		expect(((await check.json()) as any).rol).toBe("TURISTA");
-		expect(
-			(await mf.dispatchFetch("http://localhost/api/admin/organizadores", { headers: { cookie } }))
-				.status,
-		).toBe(403);
+		expect(r.headers.get("set-cookie")).toBeNull();
+		expect(await db.prepare("SELECT email_verificado FROM usuario WHERE email=?").bind("worker@gmail.com").first("email_verificado")).toBe(0);
 
 		const organizer = new FormData();
 		for (const [k, v] of Object.entries({
@@ -92,6 +92,7 @@ it("ejecuta el bundle completo en workerd y registra una cuenta en D1", async ()
 		const image = new Blob([Buffer.from("89504e470d0a1a0a0000000d49484452", "hex")], {
 			type: "image/png",
 		});
+		organizer.set("turnstileToken", "register-organizador");
 		organizer.set("fotoCedulaFrente", image, "test.png");
 		organizer.set("fotoCedulaDorso", image, "test.png");
 		const registration = new Request("http://localhost/api/auth/register-organizador", {

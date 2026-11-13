@@ -13,6 +13,7 @@ model Usuario {
   nombres          String
   apellidos        String
   email            String    @unique
+  email_verificado Boolean @default(true)
   departamento     String?
   localidad        String?
   foto_perfil      String?
@@ -24,6 +25,7 @@ model Usuario {
   rol              Rol       @default(TURISTA)
   sub              String?   @unique
   creado_en        DateTime  @default(now())
+
 
   comentarios    Comentario[]
   favoritos      Favorito[]
@@ -40,6 +42,7 @@ model Organizador {
   rut_ruc             String?                 @unique
   departamento     String?
   email               String                  @unique
+  email_verificado Boolean @default(true)
   telefono            String
   sitio_web           String?
   passhash            String
@@ -53,6 +56,7 @@ model Organizador {
   documentos          DocumentoOrganizador[]
   eventos             Evento[]
   recuperaciones      SolicitudRecuperacion[]
+
 
   @@index([email])
   @@index([estado])
@@ -298,4 +302,22 @@ enum DocumentoTipo {
 enum TipoServicioTransporte {
   DEPARTAMENTAL
   INTERDEPARTAMENTAL
+}
+
+model VerificacionCorreo {
+  id          Int              @id @default(autoincrement())
+  email       String           @unique
+  tipo        TipoVerificacion
+  codigo_hash String
+  expira_en   DateTime
+  enviado_en  DateTime         @default(now())
+  intentos    Int              @default(0)
+
+  @@index([expira_en])
+  @@map("verificacion_correo")
+}
+
+enum TipoVerificacion {
+  TURISTA
+  ORGANIZADOR
 }

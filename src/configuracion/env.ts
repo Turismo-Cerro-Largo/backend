@@ -8,6 +8,8 @@ const schema = z.object({
 	GOOGLE_REDIRECT_URI: z.string().optional(),
 	APP_PUBLIC_URL: z.string().url(),
 	APP_ORIGINS: z.string().min(1),
+	TURNSTILE_SECRET_KEY: z.string().trim().optional(),
+	TURNSTILE_HOSTNAME: z.string().trim().optional(),
 	MAIL_FROM: z.string().email().optional(),
 	MAIL_FROM_NAME: z.string().optional(),
 });

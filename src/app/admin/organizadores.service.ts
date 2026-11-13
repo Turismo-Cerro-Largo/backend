@@ -31,9 +31,33 @@ export const organizadoresAdminService = {
 		if (!organizador) throw new NotFoundError();
 		return organizador;
 	},
-	async cambiarEstado(valor: string, datos: z.infer<typeof organizador_estado_scheme>) {
-		const id = idValido(valor);
-		if (!(await repo.existe(id))) throw new NotFoundError();
-		return repo.cambiarEstado(id, datos.estado, datos.estado === "RECHAZADO" ? datos.motivo_rechazo ?? null : null);
-	},
+	async cambiarEstado(
+    valor: string,
+    datos: z.infer<typeof organizador_estado_scheme>
+) {
+    const id = idValido(valor);
+
+    const organizador = await repo.existe(id);
+
+    if (!organizador) {
+        throw new NotFoundError();
+    }
+
+    if (
+        datos.estado === "APROBADO" &&
+        !organizador.email_verificado
+    ) {
+        throw new BadRequestError(
+            "El organizador debe verificar su correo antes de aprobarlo."
+        );
+    }
+
+    return repo.cambiarEstado(
+        id,
+        datos.estado,
+        datos.estado === "RECHAZADO"
+            ? datos.motivo_rechazo ?? null
+            : null
+    );
+},
 };

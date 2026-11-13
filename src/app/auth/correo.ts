@@ -31,3 +31,13 @@ export async function enviarRecuperacion(email: string, token: string) {
 			"\nSolo puede usarse una vez. Si no lo solicitaste, ignorá este mensaje.",
 	});
 }
+
+export async function enviarCodigoRegistro(email: string, codigo: string) {
+	if (!correoConfigurado()) throw new Error("Configurar EMAIL y MAIL_FROM.");
+	await current().bindings.EMAIL!.send({
+		from: { email: env.MAIL_FROM!, name: env.MAIL_FROM_NAME || "Cerro Largo 360" },
+		to: email,
+		subject: "Verificá tu correo en Cerro Largo 360",
+		text: `Tu código de verificación es ${codigo}. Vence en 15 minutos.`,
+	});
+}

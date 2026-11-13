@@ -5,9 +5,11 @@ import "dotenv/config";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { app } from "../src/app.js";
 import { prisma } from "../src/configuracion/db.js";
+import { formularioTurnstile, simularTurnstile } from "./turnstile.helper.js";
 
 const aislada=process.env.TURISTA_TEST_DB===process.env.DATABASE_NAME && /^cerrolargo_turista_test_[a-z0-9]+$/.test(process.env.DATABASE_NAME||"");
 describe.skipIf(!aislada)("auth", () => {
+	simularTurnstile();
 	const marca=randomUUID().slice(0,8);
 	const emailOrganizador = `org.${marca}@gmail.com`;
 	const emailUsuario = `usr.${marca}@gmail.com`;
@@ -39,7 +41,7 @@ describe.skipIf(!aislada)("auth", () => {
 	}, 15000);
 
 	it("crear organizador", async () => {
-		const form = new FormData();
+		const form = formularioTurnstile("register-organizador");
 
 		form.append("email", emailOrganizador);
 		form.append("password", "PruebaSegura2026");
@@ -98,7 +100,7 @@ describe.skipIf(!aislada)("auth", () => {
 	}, 15000);
 
 	it("error organizador duplicado", async () => {
-		const form = new FormData();
+		const form = formularioTurnstile("register-organizador");
 
 		form.append("email", emailOrganizador);
 		form.append("password", "PruebaSegura2026");
@@ -124,7 +126,7 @@ describe.skipIf(!aislada)("auth", () => {
 	}, 15000);
 
 	it("crear turista", async () => {
-		const form = new FormData();
+		const form = formularioTurnstile("register");
 
 		form.append("nombres", "Juan");
 		form.append("apellidos", "Perez");
@@ -161,7 +163,7 @@ describe.skipIf(!aislada)("auth", () => {
 	}, 15000);
 
 	it("login turista", async () => {
-		const form = new FormData();
+		const form = formularioTurnstile("login");
 
 		form.append("email", emailUsuario);
 		form.append("password", "PruebaSegura2026");
@@ -184,7 +186,7 @@ describe.skipIf(!aislada)("auth", () => {
 	}, 15000);
 
 	it("login organizador", async () => {
-		const form = new FormData();
+		const form = formularioTurnstile("login");
 
 		form.append("email", emailOrganizador);
 		form.append("password", "PruebaSegura2026");

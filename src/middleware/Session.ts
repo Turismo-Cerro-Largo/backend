@@ -12,23 +12,36 @@ const firmaPassword = (hash: string | null) =>
 		.digest("hex");
 async function cuentaActual(tipo: string, id: number) {
 	if (tipo === "usuario")
-		return prisma.usuario.findUnique({
-			where: { id },
-			select: { id: true, rol: true, passhash: true },
-		});
+    return prisma.usuario.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            rol: true,
+            passhash: true,
+            email_verificado: true, // NUEVO
+        },
+    });
 	if (tipo === "organizador") {
-		const org = await prisma.organizador.findUnique({
-			where: { id },
-			select: { id: true, passhash: true, estado: true },
-		});
-		return org ? { ...org, rol: "ORGANIZADOR" } : null;
-	}
+    const org = await prisma.organizador.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            passhash: true,
+            estado: true,
+            email_verificado: true, // NUEVO
+        },
+    });
+
+    return org ? { ...org, rol: "ORGANIZADOR" } : null;
+}
 	return null;
 }
 // Cambiar la contraseña revoca todas las sesiones anteriores; el rol se consulta en la base.
 export async function crear_sesion(c: Context, cuenta: { tipo: string; id: number; rol: string }) {
 	const actual = await cuentaActual(cuenta.tipo, cuenta.id);
-	if (!actual) throw new UnauthorizedError();
+	if (!actual || !actual.email_verificado) {
+    throw new UnauthorizedError();
+}
 	const vencimiento = Math.floor(Date.now() / 1000) + duracion;
 	return setSignedCookie(
 		c,
@@ -62,7 +75,7 @@ export async function leerSesion(c: Context) {
 	)
 		throw new UnauthorizedError();
 	const cuenta = await cuentaActual(tipo!, n);
-	if (!cuenta || !timingSafeEqual(Buffer.from(sello), Buffer.from(firmaPassword(cuenta.passhash))))
+	if (!cuenta || !cuenta.email_verificado || !timingSafeEqual(Buffer.from(sello), Buffer.from(firmaPassword(cuenta.passhash))))
 		throw new UnauthorizedError();
 	return { tipo: tipo!, id: id!, rol: cuenta.rol };
 }

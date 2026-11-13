@@ -1,16 +1,23 @@
 import { origenRecuperacion } from "./correo.js";
 import { RecuperacionRoute, admitirIntento } from "./recuperacion.js";
+
 // src/app/auth/auth.ts
 import { hash, verify } from "../../services/password.js";
 import { borrarArchivos } from "../../services/archivos.service.js";
 import { type Context, Hono } from "hono";
 import { deleteCookie, getSignedCookie, setSignedCookie } from "hono/cookie";
-import { BadRequestError, ConflictError, UnauthorizedError } from "../../configuracion/AppError.js";
+import {
+	AppError,
+	BadRequestError,
+	ConflictError,
+	UnauthorizedError,
+} from "../../configuracion/AppError.js";
 import { prisma } from "../../configuracion/db.js";
 import { env } from "../../configuracion/env.js";
 import { ArchivosPrivados } from "../../middleware/Archivos.js";
 import { Google } from "../../middleware/Google.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
+import { verificarTurnstile } from "../../middleware/Turnstile.js";
 import {
 	auth_organizador_register_scheem,
 	auth_usuario_login_scheem,
@@ -18,8 +25,12 @@ import {
 	VERSION_DOCUMENTOS_ORGANIZADOR,
 } from "./auth.schema.js";
 import { crear_sesion, leerSesion } from "../../middleware/Session.js";
+import { VerificacionRoute, emitirCodigoRegistro } from "./verificacion.js";
+
+import { correoConfigurado } from "./correo.js";
 
 const app = new Hono();
+app.route("/verificacion", VerificacionRoute);
 app.route("/recuperacion", RecuperacionRoute);
 async function correoEnUso(email: string) {
 	const [usuario, organizador] = await Promise.all([
@@ -30,97 +41,154 @@ async function correoEnUso(email: string) {
 }
 
 // Login
-app.post("/login", bodyLimitado(32, "KB"), async (c: Context) => {
-	const body = await c.req.parseBody();
+app.post(
+	"/login",
+	bodyLimitado(32, "KB"),
+	async (c, next) => {
+		if (!admitirIntento("login-global", 500))
+			return c.json({ message: "Demasiados intentos. Esperá unos minutos." }, 429);
+		await next();
+	},
+	verificarTurnstile("login"),
+	async (c: Context) => {
+		const body = await c.req.parseBody();
 
-	// Verificar el formulario
-	const datos = auth_usuario_login_scheem.safeParse(body);
-	if (
-		!admitirIntento("login-global", 500) ||
-		(datos.success && !admitirIntento("login:" + datos.data.email.toLowerCase(), 20))
-	)
-		return c.json({ message: "Demasiados intentos. Esperá unos minutos." }, 429);
-	if (!datos.success) {
-		throw new BadRequestError();
-	}
+		// Verificar el formulario
+		const datos = auth_usuario_login_scheem.safeParse(body);
+		if (datos.success && !admitirIntento("login:" + datos.data.email.toLowerCase(), 20))
+			return c.json({ message: "Demasiados intentos. Esperá unos minutos." }, 429);
+		if (!datos.success) {
+			throw new BadRequestError();
+		}
 
-	// Buscar usuario
-	const usuario = await prisma.usuario.findUnique({
-		where: { email: datos.data.email },
-		select: {
-			id: true,
-			passhash: true,
-			rol: true,
-		},
-	});
+		// Buscar usuario
+		const usuario = await prisma.usuario.findUnique({
+			where: { email: datos.data.email },
+			select: {
+				id: true,
+				passhash: true,
+				rol: true,
+				email_verificado: true,
+			},
+		});
 
-	// Buscar organizador
-	const organizador = await prisma.organizador.findUnique({
-		where: { email: datos.data.email },
-		select: {
-			id: true,
-			passhash: true,
-		},
-	});
+		// Buscar organizador
+		const organizador = await prisma.organizador.findUnique({
+			where: { email: datos.data.email },
+			select: {
+				id: true,
+				passhash: true,
+				email_verificado: true,
+			},
+		});
 
-	const cuenta = usuario ?? organizador;
+		const cuenta = usuario ?? organizador;
 
-	if (!cuenta?.passhash) {
-		throw new BadRequestError();
-	}
+		if (!cuenta?.passhash) {
+			throw new BadRequestError();
+		}
 
-	// Verificar la password
-	const check = await verify(cuenta.passhash, datos.data.password);
+		// Verificar la password
+		const check = await verify(cuenta.passhash, datos.data.password);
 
-	if (!check) {
-		throw new BadRequestError();
-	}
+		if (!check) {
+			throw new BadRequestError();
+		}
+		if (!cuenta.email_verificado) {
+			return c.json(
+				{
+					message: "Primero debés verificar tu correo electrónico.",
+				},
+				403,
+			);
+		}
 
-	const tipo = usuario ? "usuario" : "organizador";
+		const tipo = usuario ? "usuario" : "organizador";
 
-	// Cookie para guardar la sesion
-	await crear_sesion(c, { tipo, id: cuenta.id, rol: usuario?.rol ?? "ORGANIZADOR" });
+		// Cookie para guardar la sesion
+		await crear_sesion(c, { tipo, id: cuenta.id, rol: usuario?.rol ?? "ORGANIZADOR" });
 
-	return c.json({ message: "Exito", tipo, rol: usuario?.rol ?? "ORGANIZADOR" }, 200);
-});
+		return c.json({ message: "Exito", tipo, rol: usuario?.rol ?? "ORGANIZADOR" }, 200);
+	},
+);
 
 // Registro del usuario
-app.post("/register", bodyLimitado(64, "KB"), async (c: Context) => {
-	const body = await c.req.parseBody();
+app.post(
+	"/register",
+	bodyLimitado(64, "KB"),
+	verificarTurnstile("register"),
+	async (c: Context) => {
+		const body = await c.req.parseBody();
 
-	// Verificar el formulario
-	const datos = auth_usuario_register_scheem.safeParse(body);
-	if (!datos.success) {
-		throw new BadRequestError();
-	}
+		// Verificar el formulario
+		const datos = auth_usuario_register_scheem.safeParse(body);
+		if (!datos.success) {
+			throw new BadRequestError();
+		}
+		if (!correoConfigurado()) {
+			return c.json(
+				{
+					message: "El servicio de correo no está configurado.",
+				},
+				503,
+			);
+		}
 
-	if (await correoEnUso(datos.data.email))
-		throw new ConflictError("Ese correo ya está registrado.");
+		if (
+			!admitirIntento(`registro:${datos.data.email}`, 3) ||
+			!admitirIntento("registros-global", 100)
+		) {
+			return c.json(
+				{
+					message: "Demasiados intentos de registro.",
+				},
+				429,
+			);
+		}
 
-	// Separar la password y fecha
-	const { password, fecha_nacimiento, ...datosUsuario } = datos.data;
+		if (await correoEnUso(datos.data.email))
+			throw new ConflictError("Ese correo ya está registrado.");
 
-	// Crear el hash de la password
-	const passhash = await hash(password, {
-		memoryCost: 19456,
-		timeCost: 2,
-		parallelism: 1,
-	});
+		// Separar la password y fecha
+		const { password, fecha_nacimiento, ...datosUsuario } = datos.data;
 
-	// Crear el usuario
-	const usuario = await prisma.usuario.create({
-		data: {
-			...datosUsuario,
-			fecha_nacimiento: new Date(`${fecha_nacimiento}T00:00:00.000Z`),
-			passhash,
-		},
-	});
+		// Crear el hash de la password
+		const passhash = await hash(password, {
+			memoryCost: 19456,
+			timeCost: 2,
+			parallelism: 1,
+		});
 
-	// Cookie para guardar la sesion
-	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol });
+		// Crear el usuario
+		const usuario = await prisma.usuario.create({
+			data: {
+				email_verificado: false,
+				...datosUsuario,
+				fecha_nacimiento: new Date(`${fecha_nacimiento}T00:00:00.000Z`),
+				passhash,
+			},
+		});
 
-	return c.json({ message: "Exito" }, 201);
-});
+		let enviado = true;
+
+		try {
+			await emitirCodigoRegistro(usuario.email, "TURISTA");
+		} catch {
+			enviado = false;
+			console.error("Falló el correo de registro del turista.");
+		}
+
+		return c.json(
+			{
+				message: enviado
+					? "Te enviamos un código de verificación."
+					: "Cuenta creada. Solicitá el reenvío del código.",
+				enviado,
+			},
+			201,
+		);
+	},
+);
 
 // registro
 
@@ -140,6 +208,7 @@ app.post(
 
 		await next();
 	},
+	verificarTurnstile("register-organizador"),
 	ArchivosPrivados(),
 	async (c: Context) => {
 		let organizador;
@@ -149,12 +218,20 @@ app.post(
 
 			if (!datos.success) throw new BadRequestError();
 
+			if (!correoConfigurado())
+				throw new AppError("El servicio de correo no está configurado.", 503);
+			if (
+				!admitirIntento(`registro:${datos.data.email}`, 3) ||
+				!admitirIntento("registros-global", 100)
+			)
+				throw new AppError("Demasiados intentos de registro.", 429);
 			if (await correoEnUso(datos.data.email))
 				throw new ConflictError("Ese correo ya está registrado.");
 
 			organizador = await prisma.organizador.create({
 				data: {
 					email: datos.data.email,
+					email_verificado: false,
 					nombre_organizacion: datos.data.nombreOrganizacion,
 					rut_ruc: datos.data.rut,
 					departamento: datos.data.departamento,
@@ -188,9 +265,24 @@ app.post(
 			throw e;
 		}
 
-		await crear_sesion(c, { tipo: "organizador", id: organizador.id, rol: "ORGANIZADOR" });
+		let enviado = true;
 
-		return c.json({ message: "Exito" }, 201);
+		try {
+			await emitirCodigoRegistro(organizador.email, "ORGANIZADOR");
+		} catch {
+			enviado = false;
+			console.error("Falló el correo de registro del organizador.");
+		}
+
+		return c.json(
+			{
+				message: enviado
+					? "Verificá tu correo para continuar."
+					: "Solicitud creada. Solicitá otro código.",
+				enviado,
+			},
+			201,
+		);
 	},
 );
 
@@ -217,10 +309,14 @@ app.get("/google", Google(), async (c: Context) => {
 				apellidos: google.family_name ?? "",
 				email: google.email,
 				sub: google.id,
+				email_verificado: true,
 			},
 		});
-	} else if (!usuario.sub) {
-		usuario = await prisma.usuario.update({ where: { id: usuario.id }, data: { sub: google.id } });
+	} else if (!usuario.sub || !usuario.email_verificado) {
+		usuario = await prisma.usuario.update({
+			where: { id: usuario.id },
+			data: { sub: google.id, email_verificado: true },
+		});
 	}
 
 	await crear_sesion(c, { tipo: "usuario", id: usuario.id, rol: usuario.rol });

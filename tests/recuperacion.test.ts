@@ -8,11 +8,13 @@ import { app } from "../src/app.js";
 import { prisma } from "../src/configuracion/db.js";
 import { crear_sesion } from "../src/middleware/Session.js";
 import { correoConfigurado } from "../src/app/auth/correo.js";
+import { formularioTurnstile, simularTurnstile } from "./turnstile.helper.js";
 
 const aislada =
 	process.env.TURISTA_TEST_DB === process.env.DATABASE_NAME &&
 	/^cerrolargo_turista_test_[a-z0-9]+$/.test(process.env.DATABASE_NAME || "");
 describe.skipIf(!aislada)("recuperación y seguridad", () => {
+	simularTurnstile();
 	const marca = randomUUID().slice(0, 8),
 		email = `reset.${marca}@gmail.com`,
 		orgEmail = `orgreset.${marca}@gmail.com`;
@@ -20,11 +22,11 @@ describe.skipIf(!aislada)("recuperación y seguridad", () => {
 	const nuevo = "NuevaClaveSegura2026";
 	let id: number, orgId: number, googleId: number, adminId: number, cookie: string, token: string;
 	const archivos: string[] = [];
-	const req = (ruta: string, body: unknown, origen = origin) =>
+	const req = (ruta: string, body: Record<string, unknown>, origen = origin) =>
 		app.request("/api/auth/recuperacion/" + ruta, {
 			method: "POST",
 			headers: { "content-type": "application/json", origin: origen },
-			body: JSON.stringify(body),
+			body: JSON.stringify(ruta === "solicitar" ? { turnstileToken: "recuperar-contrasena", ...body } : body),
 		});
 	const digest = (s: string) => createHash("sha256").update(s).digest("hex");
 	async function sesion(id: number, tipo = "usuario") {
@@ -112,6 +114,9 @@ describe.skipIf(!aislada)("recuperación y seguridad", () => {
 	});
 	it("rechaza origen ajeno, JSON inválido y claves débiles", async () => {
 		expect((await req("solicitar", { email }, "https://ajeno.invalid")).status).toBe(403);
+		const sinCaptcha = await req("solicitar", { email, turnstileToken: undefined });
+		expect(sinCaptcha.status).toBe(400);
+		expect(await sinCaptcha.json()).toMatchObject({ code: "TURNSTILE_INVALID" });
 		expect((await req("solicitar", { email: "no-es-correo" })).status).toBe(400);
 		expect((await req("confirmar", { token, password: "a" })).status).toBe(400);
 		expect((await req("confirmar", { token: "x".repeat(64), password: nuevo })).status).toBe(400);
@@ -149,7 +154,7 @@ describe.skipIf(!aislada)("recuperación y seguridad", () => {
 			[nuevo, 200],
 			["AnteriorSegura2026", 400],
 		] as const) {
-			const form = new FormData();
+			const form = formularioTurnstile("login");
 			form.set("email", email);
 			form.set("password", password);
 			expect(
@@ -208,7 +213,7 @@ describe.skipIf(!aislada)("recuperación y seguridad", () => {
 		expect((await app.request("/api/archivos/publicos/no-existe.jpg")).status).toBe(404);
 	});
 	it("rechaza un archivo disfrazado de imagen en el registro del organizador", async () => {
-		const form = new FormData();
+		const form = formularioTurnstile("register-organizador");
 		form.set("email", `upload.${marca}@gmail.com`);
 		form.set("password", "PruebaSegura2026");
 		form.set("nombreOrganizacion", "Prueba");

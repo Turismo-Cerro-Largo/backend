@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const correoSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254) }).strict();
+export const correoSchema = z.object({ email: z.string().trim().toLowerCase().email().max(254), turnstileToken: z.string().min(1).max(2048) }).strict();
 export const resetSchema = z
 	.object({
 		token: z.string().regex(/^[a-f0-9]{64}$/),

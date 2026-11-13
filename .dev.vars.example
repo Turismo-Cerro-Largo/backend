@@ -17,3 +17,11 @@ SEED_ORGANIZADOR_PASSWORD=
 
 # Registrar también esta URI de desarrollo en Google Cloud si se prueba localmente.
 GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google
+
+# Turnstile (la clave pública va en el frontend).
+TURNSTILE_SECRET_KEY=
+TURNSTILE_HOSTNAME=
+
+# Remitente verificado de Cloudflare Email Service.
+MAIL_FROM=
+MAIL_FROM_NAME=Cerro Largo 360

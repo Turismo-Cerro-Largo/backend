@@ -5,7 +5,9 @@ import { camposPerfil } from "../organizador/organizador.consts.js";
 export const organizadoresAdminRepository = {
 	listar: (estado: EstadoOrganizador | undefined, offset: number, limit: number) =>
 		prisma.organizador.findMany({
-			where: estado ? { estado } : {},
+			where: estado
+    ? { estado, email_verificado: true }
+    : { email_verificado: true },
 			skip: offset,
 			take: limit,
 			orderBy: { creado_en: "desc" },
@@ -21,11 +23,18 @@ export const organizadoresAdminRepository = {
 			},
 		}),
 	existe: (id: number) =>
-		prisma.organizador.findUnique({ where: { id }, select: { id: true } }),
+    prisma.organizador.findUnique({
+        where: { id },
+        select: {
+            id: true,
+            email_verificado: true
+        }
+    }),
 	cambiarEstado: (id: number, estado: EstadoOrganizador, motivo_rechazo: string | null) =>
 		prisma.organizador.update({
 			where: { id },
 			data: { estado, motivo_rechazo },
-			select: { id: true, estado: true, motivo_rechazo: true },
+			select: { id: true,email_verificado: true, estado: true, motivo_rechazo: true },
+			
 		}),
 };

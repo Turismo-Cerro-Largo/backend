@@ -7,6 +7,7 @@ import { BadRequestError } from "../../configuracion/AppError.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
 import { correoConfigurado, enviarRecuperacion, origenRecuperacion } from "./correo.js";
 import { background, current } from "../../configuracion/runtime.js";
+import { verificarTurnstile } from "../../middleware/Turnstile.js";
 const app = new Hono();
 const respuesta = {
 	message:
@@ -61,7 +62,7 @@ app.use("*", async (c, next) => {
 	c.header("Referrer-Policy", "no-referrer");
 	await next();
 });
-app.post("/solicitar", async (c) => {
+app.post("/solicitar", verificarTurnstile("recuperar-contrasena", "json"), async (c) => {
 	const datos = correoSchema.safeParse(await c.req.json().catch(() => null));
 	if (!datos.success) throw new BadRequestError("Ingresá un correo válido.");
 	if (!correoConfigurado())

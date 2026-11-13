@@ -52,7 +52,8 @@ export const auth_usuario_login_scheem = z.object({
 export const auth_usuario_register_scheem = z.object({
 	nombres: z.string().min(2).max(60).regex(nombreRegex),
 	apellidos: z.string().min(2).max(60).regex(nombreRegex),
-	email: z.string().min(7).max(45).email().regex(emailRegex),
+	email: z.string().trim().toLowerCase()
+    .min(7).max(45).email().regex(emailRegex),
 	departamento: z.enum(departamentos),
 	fecha_nacimiento: fechaNacimientoSchema,
 	genero: z.enum(["masculino", "femenino", "otro"]),
@@ -63,7 +64,8 @@ export const auth_organizador_register_scheem = z.object({
 	nombreOrganizacion: z.string().min(2).max(100).regex(organizacionRegex),
 	rut: z.preprocess((valor) => typeof valor === "string" ? valor.trim() || null : valor, z.string().length(12).regex(rutRegex).nullish().transform((valor) => valor ?? null)),
 	departamento: z.enum(departamentos),
-	email: z.string().min(7).max(45).email().regex(emailRegex),
+	email: z.string().trim().toLowerCase()
+    .min(7).max(45).email().regex(emailRegex),
 	telefono: z.string().min(8).max(20).regex(telefonoRegex),
 	password: z.string().min(8).max(32).regex(passwordRegex),
 

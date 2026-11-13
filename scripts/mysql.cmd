@@ -5,4 +5,4 @@ winget install --id Oracle.MySQL -e
 setx PATH "%PATH%;C:\Program Files\MySQL\MySQL Server 8.4\bin" /M
 net start MySQL84
 sc  start MySQL84
-call mysql -u root -p12345678 -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '12345678'; FLUSH PRIVILEGES;"
+call mysql -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '12345678'; FLUSH PRIVILEGES;"
