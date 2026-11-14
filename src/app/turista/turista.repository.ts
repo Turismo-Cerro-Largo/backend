@@ -1,12 +1,20 @@
 import { prisma } from "../../configuracion/db.js";
 import type { z } from "zod";
-import { camposLugar } from "../publico/lugares.js";
+import { camposLugar } from "../lugares/lugares.service.js";
 import { perfilSchema, valoracionSchema } from "./turista.schema.js";
 
 const perfilSelect = {
-	id: true, nombres: true, apellidos: true, email: true,
-	fecha_nacimiento: true, genero: true, telefono: true,
-	departamento: true, localidad: true, foto_perfil: true, creado_en: true,
+	id: true,
+	nombres: true,
+	apellidos: true,
+	email: true,
+	fecha_nacimiento: true,
+	genero: true,
+	telefono: true,
+	departamento: true,
+	localidad: true,
+	foto_perfil: true,
+	creado_en: true,
 } as const;
 
 export const turistaRepository = {
@@ -21,7 +29,10 @@ export const turistaRepository = {
 			data: datos,
 		}),
 	cambiarFoto: (id: number, anterior: string | null, nueva: string | null) =>
-		prisma.usuario.updateMany({ where: { id, foto_perfil: anterior }, data: { foto_perfil: nueva } }),
+		prisma.usuario.updateMany({
+			where: { id, foto_perfil: anterior },
+			data: { foto_perfil: nueva },
+		}),
 	favoritos: (id: number) =>
 		prisma.favorito.findMany({
 			where: { id_usuario: id },
@@ -36,7 +47,11 @@ export const turistaRepository = {
 		prisma.ubicacion.findFirst({ where: { id, estado: "PUBLICADO" }, select: { id: true } }),
 	guardarFavorito: (idUsuario: number, idUbicacion: number) => {
 		const data = { id_usuario: idUsuario, id_ubicacion: idUbicacion };
-		return prisma.favorito.upsert({ where: { id_usuario_id_ubicacion: data }, create: data, update: {} });
+		return prisma.favorito.upsert({
+			where: { id_usuario_id_ubicacion: data },
+			create: data,
+			update: {},
+		});
 	},
 	borrarFavorito: (idUsuario: number, idUbicacion: number) =>
 		prisma.favorito.deleteMany({ where: { id_usuario: idUsuario, id_ubicacion: idUbicacion } }),
@@ -45,8 +60,12 @@ export const turistaRepository = {
 			where: { id_usuario: id },
 			orderBy: [{ creado_en: "desc" }, { id: "desc" }],
 			select: {
-				id: true, id_ubicacion: true, texto: true, calificacion: true,
-				estado: true, creado_en: true,
+				id: true,
+				id_ubicacion: true,
+				texto: true,
+				calificacion: true,
+				estado: true,
+				creado_en: true,
 				ubicacion: { select: { id: true, nombre: true, estado: true } },
 			},
 		}),
@@ -65,10 +84,16 @@ export const turistaRepository = {
 		]);
 		return { favorito: Boolean(favorito), valoracion };
 	},
-	crearValoracion: (idUsuario: number, idUbicacion: number, datos: z.infer<typeof valoracionSchema>) =>
+	crearValoracion: (
+		idUsuario: number,
+		idUbicacion: number,
+		datos: z.infer<typeof valoracionSchema>,
+	) =>
 		prisma.comentario.create({
 			data: {
-				...datos, id_usuario: idUsuario, id_ubicacion: idUbicacion,
+				...datos,
+				id_usuario: idUsuario,
+				id_ubicacion: idUbicacion,
 				estado: "PENDIENTE_REVISION",
 			},
 			select: { id: true, texto: true, calificacion: true, estado: true },

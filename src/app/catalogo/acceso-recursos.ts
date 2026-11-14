@@ -1,12 +1,14 @@
-import type { Context } from "hono";
-import { prisma } from "../../configuracion/db.js";
-import { leerSesion } from "../../middleware/Session.js";
+import * as recursoRepository from "../recursos/recursos.repository.js";
+
+import type { leerSesion } from "../../middleware/Session.js";
+
+export type ObtenerSesion = () => ReturnType<typeof leerSesion>;
 
 export async function recursoVisible(
-	c: Context,
+	obtenerSesion: ObtenerSesion,
 	filtro: { id?: number; uri?: string | { in: string[] } },
 ) {
-	const recurso = await prisma.recurso.findFirst({
+	const recurso = await recursoRepository.findFirst({
 		where: { ...filtro, id_comentario: null },
 		select: {
 			id: true,
@@ -20,7 +22,7 @@ export async function recursoVisible(
 	if (!recurso || Boolean(recurso.evento) === Boolean(recurso.ubicacion)) return null;
 	if (recurso.evento?.estado === "PUBLICADO" || recurso.ubicacion?.estado === "PUBLICADO")
 		return recurso;
-	const sesion = await leerSesion(c).catch(() => null);
+	const sesion = await obtenerSesion().catch(() => null);
 	if (sesion?.tipo === "usuario" && sesion.rol === "ADMINISTRADOR") return recurso;
 	if (sesion?.tipo === "organizador" && recurso.evento?.id_organizador === Number(sesion.id))
 		return recurso;

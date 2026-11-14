@@ -16,6 +16,10 @@ describe("rutas por área y middleware", () => {
 	it("conserva los contratos consumidos por los tres paneles y agrega alias administradores", () => {
 		for (const ruta of [
 			"GET /api/admin/dashboard",
+			"GET /api/eventos",
+			"GET /api/admin/eventos",
+			"PATCH /api/admin/eventos/:id/estado",
+			"PATCH /api/eventos/:id/estado",
 			"GET /api/admin/organizadores",
 			"GET /api/organizador/lista",
 			"GET /api/organizador/eventos",
@@ -38,7 +42,14 @@ describe("rutas por área y middleware", () => {
     expect(listadoAdmin.status).toBe(401);
   });
 
-  it("rechaza una petición del turista sin sesión", async () => {
+  it("protege ambas rutas de moderación de eventos con el mismo middleware", async () => {
+		for (const ruta of ["/api/admin/eventos/1/estado", "/api/eventos/1/estado"]) {
+			const respuesta = await app.request(ruta, { method: "PATCH", headers: { origin: origen } });
+			expect(respuesta.status).toBe(401);
+		}
+	});
+
+	it("rechaza una petición del turista sin sesión", async () => {
 		const respuesta = await app.request("/api/turista/perfil");
 		expect(respuesta.status).toBe(401);
 	});

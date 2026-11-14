@@ -23,8 +23,6 @@ export const env = z
 		GOOGLE_REDIRECT_FRONTEND: z.string().optional(),
 
 		// Environment
-		NODE_ENV: z
-			.enum(["development", "production", "test"])
-			.default("development"),
+		NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 	})
 	.parse(process.env);

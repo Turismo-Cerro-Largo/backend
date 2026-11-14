@@ -9,16 +9,22 @@ Esta guía describe la rama `loca`. La API usa Node.js, Hono, TypeScript ESM, Zo
 - `pnpm orm:generate --config prisma7.config.ts` genera el cliente. `pnpm orm:deploy --config prisma7.config.ts` aplica las migraciones pendientes.
 - `pnpm test` ejecuta Vitest. Para revisar tipos sin compilar, usá `pnpm exec tsc --noEmit`. `pnpm check` y los scripts `format:*` escriben en los archivos. `orm:pereza` reinicia la base y borra sus datos.
 
+## Capas del backend
+
+app-router.ts monta los controllers de cada recurso y sus alias bajo /api. Los archivos `*.controller.ts` reciben la petición, aplican middleware y construyen la respuesta. Los `*.service.ts` validan datos y aplican las reglas de negocio. Los `*.repository.ts` encapsulan Prisma y las transacciones. Cada recurso agrupa sus controllers, services y repositories en su carpeta. Eventos tiene su repositorio y servicio compartidos por el catálogo, la administración y el organizador.
+
+Los errores siguen pasando por el manejador de `AppError` en `src/configuracion/configuracion.ts`. Al agregar una ruta, conservá el contrato HTTP y comprobá los permisos en su controller y el middleware.
+
 ## Organización y rutas
 
 | Área | Ubicación y responsabilidad |
 | --- | --- |
 | Arranque | `src/index.ts` inicia el servidor. `src/app.ts` configura Hono. `src/app/app-router.ts` monta los módulos bajo `/api`. |
 | Autenticación | `src/app/auth/` gestiona login, registro, Google OAuth, sesión, verificación de correo y recuperación. |
-| Administración | `src/app/admin/` sirve el resumen y la gestión de eventos, ubicaciones, localidades, usuarios, organizadores y moderación. `/api/moderacion-valoraciones` conserva un alias histórico. |
-| Organizador | `src/app/organizador/` gestiona perfil y eventos propios. La gestión de eventos exige aprobación. |
+| Administración | `/api/admin` monta controllers administrativos de cada recurso. El resumen vive en `src/app/dashboard/`. `/api/moderacion-valoraciones` conserva un alias histórico. |
+| Organizador | `/api/organizador` monta el perfil desde `src/app/organizadores/` y los eventos propios desde `src/app/eventos/`. La gestión de eventos exige aprobación. |
 | Turista | `src/app/turista/` gestiona perfil, foto, favoritos, lugares y valoraciones del usuario. |
-| Catálogo público | `src/app/publico/publico-router.ts` monta lugares, localidades, categorías, eventos, ubicaciones, archivos, transporte y horarios. Algunas mutaciones viven en esos módulos y tienen autorización propia. |
+| Catálogo público | `src/app/app-router.ts` monta lugares, localidades, categorías, eventos, ubicaciones, archivos, transporte y horarios. Algunas mutaciones viven en esos módulos y tienen autorización propia. |
 | Infraestructura | `src/configuracion/` centraliza entorno, Prisma, errores y middleware global. `src/middleware/` contiene sesión, orígenes, Turnstile, límites y archivos. |
 | Datos y contenido | `prisma/` contiene esquema, migraciones y seed de categorías. `scripts/` tiene utilidades locales, datos de demostración y transporte. `auto/` conserva imágenes y sus fuentes. |
 

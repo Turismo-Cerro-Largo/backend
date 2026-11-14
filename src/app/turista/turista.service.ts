@@ -27,7 +27,9 @@ export const turistaService = {
 	async editarPerfil(id: number, datos: DatosPerfil) {
 		const resultado = await repo.actualizarPerfil(id, datos);
 		if (!resultado.count)
-			throw new ConflictError("La fecha de nacimiento o el género ya están registrados. Recargá el perfil; estos datos solo se pueden completar una vez.");
+			throw new ConflictError(
+				"La fecha de nacimiento o el género ya están registrados. Recargá el perfil; estos datos solo se pueden completar una vez.",
+			);
 		return respuestaPerfil(await repo.perfil(id));
 	},
 	async foto(id: number) {
@@ -85,7 +87,9 @@ export const turistaService = {
 	async borrarValoracion(idUsuario: number, idValoracion: number) {
 		const resultado = await repo.borrarValoracionPendiente(idUsuario, idValoracion);
 		if (!resultado.count)
-			throw new ConflictError("Solo podés eliminar tus valoraciones pendientes. Actualizá la página para ver su estado.");
+			throw new ConflictError(
+				"Solo podés eliminar tus valoraciones pendientes. Actualizá la página para ver su estado.",
+			);
 		return { eliminado: true };
 	},
 	async estadoLugar(idUsuario: number, idUbicacion: number) {
