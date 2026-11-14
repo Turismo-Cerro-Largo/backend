@@ -1,10 +1,16 @@
+import { correoEnUso } from "../shared/correo-en-uso.js";
 import * as usuarioRepository from "../usuarios/usuarios.repository.js";
 import * as organizadorRepository from "../organizadores/organizadores.repository.js";
 import { admitirIntento } from "./recuperacion.service.js";
 import { hash, verify } from "@node-rs/argon2";
 import { unlink } from "node:fs/promises";
 import path from "node:path";
-import { BadRequestError, ConflictError, UnauthorizedError } from "../../configuracion/AppError.js";
+import {
+	BadRequestError,
+	ConflictError,
+	CuentaBloqueadaError,
+	UnauthorizedError,
+} from "../../configuracion/AppError.js";
 import {
 	auth_organizador_register_scheem,
 	auth_usuario_login_scheem,
@@ -12,14 +18,6 @@ import {
 } from "./auth.schema.js";
 import { emitirCodigoRegistro } from "./verificacion.service.js";
 import { correoConfigurado } from "./correo.js";
-
-async function correoEnUso(email: string) {
-	const [usuario, organizador] = await Promise.all([
-		usuarioRepository.findUnique({ where: { email }, select: { id: true } }),
-		organizadorRepository.findUnique({ where: { email }, select: { id: true } }),
-	]);
-	return Boolean(usuario || organizador);
-}
 
 export async function iniciarSesion(body: unknown) {
 	// Verificar el formulario
@@ -41,6 +39,7 @@ export async function iniciarSesion(body: unknown) {
 			passhash: true,
 			rol: true,
 			email_verificado: true,
+			estado_acceso: true,
 		},
 	});
 
@@ -51,6 +50,7 @@ export async function iniciarSesion(body: unknown) {
 			id: true,
 			passhash: true,
 			email_verificado: true,
+			estado_acceso: true,
 		},
 	});
 
@@ -66,6 +66,7 @@ export async function iniciarSesion(body: unknown) {
 	if (!check) {
 		throw new BadRequestError();
 	}
+	if (cuenta.estado_acceso === "BLOQUEADO") throw new CuentaBloqueadaError();
 	if (!cuenta.email_verificado) {
 		return {
 			datos: {
@@ -268,6 +269,9 @@ export async function iniciarConGoogle(
 	if (usuario?.sub && usuario.sub !== google.id) {
 		throw new BadRequestError();
 	}
+
+	if (usuario?.estado_acceso === "BLOQUEADO") throw new CuentaBloqueadaError();
+	if (usuario?.estado_acceso === "ELIMINADO") throw new UnauthorizedError();
 
 	if (!usuario) {
 		if (await organizadorRepository.findUnique({ where: { email: google.email } }))

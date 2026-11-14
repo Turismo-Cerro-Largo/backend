@@ -36,10 +36,17 @@ let pendientes = 0;
 
 async function procesar(email: string) {
 	const [usuario, org] = await Promise.all([
-		usuarioRepository.findUnique({ where: { email }, select: { id: true, passhash: true } }),
-		organizadorRepository.findUnique({ where: { email }, select: { id: true, passhash: true } }),
+		usuarioRepository.findUnique({
+			where: { email },
+			select: { id: true, passhash: true, estado_acceso: true },
+		}),
+		organizadorRepository.findUnique({
+			where: { email },
+			select: { id: true, passhash: true, estado_acceso: true },
+		}),
 	]);
-	if ((usuario && org) || !(usuario?.passhash || org?.passhash)) return;
+	const cuenta = usuario ?? org;
+	if ((usuario && org) || !cuenta?.passhash || cuenta.estado_acceso !== "ACTIVO") return;
 	const token = randomBytes(32).toString("hex");
 	const solicitud = await solicitudRecuperacionRepository.create({
 		data: {

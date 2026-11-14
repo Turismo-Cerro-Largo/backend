@@ -47,3 +47,10 @@ export class PayloadTooLargeError extends AppError {
 		super(message, 413);
 	}
 }
+
+export class CuentaBloqueadaError extends ForbiddenError {
+	readonly code = "CUENTA_BLOQUEADA";
+	constructor() {
+		super("Tu cuenta está bloqueada.");
+	}
+}

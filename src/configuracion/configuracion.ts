@@ -6,7 +6,7 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
-import { AppError } from "./AppError.js";
+import { AppError, CuentaBloqueadaError } from "./AppError.js";
 
 /**
  * Helper para cargar los middleware
@@ -47,6 +47,7 @@ export const Configuracion = (app: Hono) => {
 			return c.json(
 				{
 					message: err.message,
+					...(err instanceof CuentaBloqueadaError ? { code: err.code } : {}),
 				},
 				err.statusCode as any,
 			);

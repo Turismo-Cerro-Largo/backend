@@ -2,7 +2,7 @@ import { origenRecuperacion } from "./correo.js";
 import { admitirIntento } from "./recuperacion.service.js";
 import { type Context, Hono } from "hono";
 import { deleteCookie } from "hono/cookie";
-import { BadRequestError } from "../../configuracion/AppError.js";
+import { BadRequestError, CuentaBloqueadaError } from "../../configuracion/AppError.js";
 import { ArchivosPrivados } from "../../middleware/Archivos.js";
 import { Google } from "../../middleware/Google.js";
 import { bodyLimitado } from "../../middleware/Limit.js";
@@ -63,7 +63,13 @@ app.post(
 );
 
 app.get("/google", Google(), async (c) => {
-	await crear_sesion(c, await servicio.iniciarConGoogle(c.get("user-google")));
+	try {
+		await crear_sesion(c, await servicio.iniciarConGoogle(c.get("user-google")));
+	} catch (error) {
+		if (error instanceof CuentaBloqueadaError)
+			return c.redirect(origenRecuperacion() + "/cuenta-bloqueada");
+		throw error;
+	}
 	return c.redirect(origenRecuperacion() + "/");
 });
 

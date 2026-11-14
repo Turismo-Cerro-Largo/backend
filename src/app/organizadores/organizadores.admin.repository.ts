@@ -9,13 +9,18 @@ export const organizadoresAdminRepository = {
 			skip: offset,
 			take: limit,
 			orderBy: { creado_en: "desc" },
-			select: { ...camposPerfil, documentos: { select: { tipo: true, uri: true } } },
+			select: {
+				...camposPerfil,
+				estado_acceso: true,
+				documentos: { select: { tipo: true, uri: true } },
+			},
 		}),
 	detalle: (id: number) =>
 		prisma.organizador.findUnique({
 			where: { id },
 			select: {
 				...camposPerfil,
+				estado_acceso: true,
 				motivo_rechazo: true,
 				documentos: { select: { tipo: true, uri: true } },
 			},

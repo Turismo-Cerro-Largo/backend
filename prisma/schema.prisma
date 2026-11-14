@@ -13,6 +13,8 @@ model Usuario {
   apellidos        String    @db.VarChar(100)
   email            String    @unique
   email_verificado Boolean   @default(true)
+  estado_acceso EstadoAcceso @default(ACTIVO)
+  version_sesion Int @default(0)
   departamento     String?   @db.VarChar(100)
   localidad        String?   @db.VarChar(120)
   foto_perfil      String?   @db.VarChar(255)
@@ -42,6 +44,8 @@ model Organizador {
   departamento     String?   @db.VarChar(100)
   email               String                  @unique
   email_verificado    Boolean                 @default(true)
+  estado_acceso EstadoAcceso @default(ACTIVO)
+  version_sesion Int @default(0)
   telefono            String                  @db.VarChar(30)
   sitio_web           String?                 @db.VarChar(500)
   passhash            String                  @db.VarChar(255)
@@ -319,4 +323,10 @@ model VerificacionCorreo {
 enum TipoVerificacion {
   TURISTA
   ORGANIZADOR
+}
+
+enum EstadoAcceso {
+  ACTIVO
+  BLOQUEADO
+  ELIMINADO
 }

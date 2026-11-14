@@ -5,11 +5,15 @@ import { getSignedCookie, setSignedCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 import type { Context } from "hono";
 import { env } from "../configuracion/env.js";
-import { ForbiddenError, UnauthorizedError } from "../configuracion/AppError.js";
+import {
+	CuentaBloqueadaError,
+	ForbiddenError,
+	UnauthorizedError,
+} from "../configuracion/AppError.js";
 const duracion = 7 * 24 * 60 * 60;
-const firmaPassword = (hash: string | null) =>
+const firmaPassword = (hash: string | null, version: number) =>
 	createHmac("sha256", env.COOKIE_SECRET)
-		.update(hash || "google-only")
+		.update((hash || "google-only") + (version ? ":" + version : ""))
 		.digest("hex");
 async function cuentaActual(tipo: string, id: number) {
 	if (tipo === "usuario")
@@ -19,7 +23,9 @@ async function cuentaActual(tipo: string, id: number) {
 				id: true,
 				rol: true,
 				passhash: true,
-				email_verificado: true, // NUEVO
+				email_verificado: true,
+				estado_acceso: true,
+				version_sesion: true,
 			},
 		});
 	if (tipo === "organizador") {
@@ -29,7 +35,9 @@ async function cuentaActual(tipo: string, id: number) {
 				id: true,
 				passhash: true,
 				estado: true,
-				email_verificado: true, // NUEVO
+				email_verificado: true,
+				estado_acceso: true,
+				version_sesion: true,
 			},
 		});
 
@@ -40,14 +48,15 @@ async function cuentaActual(tipo: string, id: number) {
 // Cambiar la contraseña revoca todas las sesiones anteriores; el rol se consulta en la base.
 export async function crear_sesion(c: Context, cuenta: { tipo: string; id: number; rol: string }) {
 	const actual = await cuentaActual(cuenta.tipo, cuenta.id);
-	if (!actual || !actual.email_verificado) {
+	if (actual?.estado_acceso === "BLOQUEADO") throw new CuentaBloqueadaError();
+	if (!actual || !actual.email_verificado || actual.estado_acceso !== "ACTIVO") {
 		throw new UnauthorizedError();
 	}
 	const vencimiento = Math.floor(Date.now() / 1000) + duracion;
 	return setSignedCookie(
 		c,
 		"session",
-		`${cuenta.tipo}:${cuenta.id}:${actual.rol}:${vencimiento}:${firmaPassword(actual.passhash)}`,
+		`${cuenta.tipo}:${cuenta.id}:${actual.rol}:${vencimiento}:${firmaPassword(actual.passhash, actual.version_sesion)}`,
 		env.COOKIE_SECRET,
 		{
 			httpOnly: true,
@@ -76,10 +85,15 @@ export async function leerSesion(c: Context) {
 	)
 		throw new UnauthorizedError();
 	const cuenta = await cuentaActual(tipo!, n);
+	if (cuenta?.estado_acceso === "BLOQUEADO") throw new CuentaBloqueadaError();
 	if (
 		!cuenta ||
 		!cuenta.email_verificado ||
-		!timingSafeEqual(Buffer.from(sello), Buffer.from(firmaPassword(cuenta.passhash)))
+		cuenta.estado_acceso !== "ACTIVO" ||
+		!timingSafeEqual(
+			Buffer.from(sello),
+			Buffer.from(firmaPassword(cuenta.passhash, cuenta.version_sesion)),
+		)
 	)
 		throw new UnauthorizedError();
 	return { tipo: tipo!, id: id!, rol: cuenta.rol };

@@ -30,3 +30,18 @@ export function update<T extends Prisma.UsuarioUpdateArgs>(
 ) {
 	return prisma.usuario.update(args);
 }
+
+export function cambiarAcceso(
+	id: number,
+	estado: import("../../configuracion/generated/prisma/enums.js").EstadoAcceso,
+) {
+	const where: Prisma.UsuarioWhereInput = {
+		id,
+		rol: "TURISTA",
+		estado_acceso: { notIn: ["ELIMINADO", estado] },
+	};
+	return prisma.usuario.updateMany({
+		where,
+		data: { estado_acceso: estado, version_sesion: { increment: 1 } },
+	});
+}

@@ -1,3 +1,5 @@
+import { estadoAcceso } from "../shared/acceso-admin.schema.js";
+import { cambiarAcceso } from "./organizadores.admin.service.js";
 import { Hono, type Context } from "hono";
 import { BadRequestError } from "../../configuracion/AppError.js";
 import { RequerirAdministrador } from "../../middleware/Session.js";
@@ -28,5 +30,15 @@ const legacy = new Hono();
 legacy.get("/lista", RequerirAdministrador, listar);
 legacy.get("/:id", RequerirAdministrador, detalle);
 legacy.patch("/:id/estado", RequerirAdministrador, bodyLimitado(8, "KB"), cambiarEstado);
+
+admin.patch("/:id/acceso", bodyLimitado(2, "KB"), async (c) =>
+	c.json(
+		await cambiarAcceso(c.req.param("id"), estadoAcceso(await c.req.json().catch(() => null))),
+	),
+);
+admin.delete("/:id", async (c) => {
+	await cambiarAcceso(c.req.param("id"), "ELIMINADO");
+	return c.body(null, 204);
+});
 
 export { admin as AdminOrganizadoresRoute, legacy as OrganizadorAdminLegacyRoute };

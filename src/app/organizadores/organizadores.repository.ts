@@ -18,3 +18,17 @@ export function findFirst<T extends Prisma.OrganizadorFindFirstArgs>(
 ) {
 	return prisma.organizador.findFirst(args);
 }
+
+export function cambiarAcceso(
+	id: number,
+	estado: import("../../configuracion/generated/prisma/enums.js").EstadoAcceso,
+) {
+	const where: Prisma.OrganizadorWhereInput = {
+		id,
+		estado_acceso: { notIn: ["ELIMINADO", estado] },
+	};
+	return prisma.organizador.updateMany({
+		where,
+		data: { estado_acceso: estado, version_sesion: { increment: 1 } },
+	});
+}

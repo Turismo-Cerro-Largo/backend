@@ -1,6 +1,15 @@
+import { hash } from "@node-rs/argon2";
+import { correoEnUso } from "../shared/correo-en-uso.js";
+import { administradorSchema } from "./usuarios.admin.schema.js";
+import { gestionarAcceso } from "../shared/acceso-admin.service.js";
+import type { EstadoAcceso } from "../../configuracion/generated/prisma/enums.js";
+import {
+	cambiarAcceso as persistirAcceso,
+	findUnique as buscarCuenta,
+} from "./usuarios.repository.js";
 import * as usuarioRepository from "./usuarios.repository.js";
 import * as favoritoRepository from "../favoritos/favoritos.repository.js";
-import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../../configuracion/AppError.js";
 
 const entero = (v: string | undefined, porDefecto: number, max: number) => {
 	if (v === undefined) return porDefecto;
@@ -25,6 +34,7 @@ const idValido = (valor: string) => {
 };
 
 const camposLista = {
+	estado_acceso: true,
 	id: true,
 	nombres: true,
 	apellidos: true,
@@ -242,4 +252,25 @@ export async function detalle(valorId: string) {
 	}
 
 	return usuario;
+}
+
+export const cambiarAcceso = (id: string, estado: EstadoAcceso) =>
+	gestionarAcceso(id, estado, { cambiarAcceso: persistirAcceso, findUnique: buscarCuenta });
+
+export async function crearAdministrador(body: unknown) {
+	const datos = administradorSchema.safeParse(body);
+	if (!datos.success) throw new BadRequestError("Revisá el nombre, el correo y la contraseña.");
+	const { password, ...perfil } = datos.data;
+	if (await correoEnUso(perfil.email)) throw new ConflictError("Ese correo ya está registrado.");
+	const passhash = await hash(password, { memoryCost: 19456, timeCost: 2, parallelism: 1 });
+	try {
+		return await usuarioRepository.create({
+			data: { ...perfil, passhash, rol: "ADMINISTRADOR", email_verificado: true },
+			select: { id: true, nombres: true, apellidos: true, email: true, rol: true },
+		});
+	} catch (error) {
+		if ((error as { code?: string }).code === "P2002")
+			throw new ConflictError("Ese correo ya está registrado.");
+		throw error;
+	}
 }

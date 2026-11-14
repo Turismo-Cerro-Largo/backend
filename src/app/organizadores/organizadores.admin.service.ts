@@ -1,3 +1,9 @@
+import { gestionarAcceso } from "../shared/acceso-admin.service.js";
+import type { EstadoAcceso } from "../../configuracion/generated/prisma/enums.js";
+import {
+	cambiarAcceso as persistirAcceso,
+	findUnique as buscarCuenta,
+} from "./organizadores.repository.js";
 import type { z } from "zod";
 import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
 import type { EstadoOrganizador } from "../../configuracion/generated/prisma/enums.js";
@@ -52,3 +58,6 @@ export const organizadoresAdminService = {
 		);
 	},
 };
+
+export const cambiarAcceso = (id: string, estado: EstadoAcceso) =>
+	gestionarAcceso(id, estado, { cambiarAcceso: persistirAcceso, findUnique: buscarCuenta });
