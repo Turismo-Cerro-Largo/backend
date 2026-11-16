@@ -4,6 +4,7 @@ import { leerFoto } from "./fotos.js";
 import { borrarFotoPerfil } from "../../services/archivos.service.js";
 import { perfilSchema, valoracionSchema } from "./turista.schema.js";
 import { turistaRepository as repo } from "./turista.repository.js";
+import { censurarResena } from "./censurar-resena.js";
 
 type DatosPerfil = z.infer<typeof perfilSchema>;
 type DatosValoracion = z.infer<typeof valoracionSchema>;
@@ -99,7 +100,10 @@ export const turistaService = {
 	async crearValoracion(idUsuario: number, idUbicacion: number, datos: DatosValoracion) {
 		await exigirLugarPublicado(idUbicacion);
 		try {
-			return await repo.crearValoracion(idUsuario, idUbicacion, datos);
+			return await repo.crearValoracion(idUsuario, idUbicacion, {
+				...datos,
+				texto: datos.texto === null ? null : censurarResena(datos.texto),
+			});
 		} catch (error) {
 			if ((error as { code?: string }).code === "P2002")
 				throw new ConflictError("Ya enviaste una valoración para este lugar.");
