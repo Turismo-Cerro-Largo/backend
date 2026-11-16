@@ -94,7 +94,7 @@ export const turistaRepository = {
 				...datos,
 				id_usuario: idUsuario,
 				id_ubicacion: idUbicacion,
-				estado: "PENDIENTE_REVISION",
+				estado: "PUBLICADO",
 			},
 			select: { id: true, texto: true, calificacion: true, estado: true },
 		}),

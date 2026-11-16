@@ -261,18 +261,20 @@ describe.skipIf(!aislada)("panel de turista: integración con MySQL", () => {
 			(await req(`turista/lugares/${lugarId}/valoracion`, "POST", { calificacion })).status,
 		).toBe(400);
 	});
-	it("guarda una valoración pendiente y no la publica ni la cuenta en promedio", async () => {
+	it("publica la valoración con el texto censurado y actualiza el promedio", async () => {
 		const res = await req(`turista/lugares/${lugarId}/valoracion`, "POST", {
 			calificacion: 5,
-			texto: "Excelente experiencia",
+			texto: "Qué MIERDA, el recorrido fue estupído.",
 		});
 		expect(res.status).toBe(201);
 		const datos = await res.json();
 		comentarioId = datos.valoracion.id;
-		expect(datos.valoracion.estado).toBe("PENDIENTE_REVISION");
+		expect(datos.valoracion.estado).toBe("PUBLICADO");
+		expect(datos.valoracion.texto).toBe("Qué ******, el recorrido fue ********.");
 		const publico = await (await req(`lugares/${lugarId}`)).json();
-		expect(publico.comentarios).toHaveLength(0);
-		expect(publico.promedio).toBeNull();
+		expect(publico.comentarios).toHaveLength(1);
+		expect(publico.comentarios[0].texto).toBe(datos.valoracion.texto);
+		expect(publico.promedio).toBe(5);
 		expect((await (await req("turista/valoraciones")).json()).valoraciones).toHaveLength(1);
 	});
 	it("rechaza una segunda valoración del mismo usuario y lugar", async () => {
@@ -280,13 +282,17 @@ describe.skipIf(!aislada)("panel de turista: integración con MySQL", () => {
 			(await req(`turista/lugares/${lugarId}/valoracion`, "POST", { calificacion: 3 })).status,
 		).toBe(409);
 	});
-	it("no permite que un turista se apruebe su comentario", async () => {
+	it("no permite que un turista cambie el estado de su comentario", async () => {
 		expect(
 			(await req(`moderacion-valoraciones/${comentarioId}`, "PATCH", { estado: "PUBLICADO" }))
 				.status,
 		).toBe(403);
 	});
 	it("el administrador aprueba y el promedio público se actualiza", async () => {
+		await prisma.comentario.update({
+			where: { id: comentarioId },
+			data: { estado: "PENDIENTE_REVISION" },
+		});
 		expect(
 			(
 				await req(

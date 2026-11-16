@@ -1,0 +1,16 @@
+export const palabrasOfensivas: readonly string[] = [
+	"boludo", "boluda", "boludos", "boludas",
+	"cabron", "cabrona", "cabrones", "cabronas",
+	"carajo", "carajos",
+	"concha", "conchas",
+	"estupido", "estupida", "estupidos", "estupidas",
+	"gilipollas",
+	"hijoputa", "hijaputa",
+	"imbecil", "imbeciles",
+	"joder", "jodete",
+	"mierda", "mierdas",
+	"pelotudo", "pelotuda", "pelotudos", "pelotudas",
+	"pendejo", "pendeja", "pendejos", "pendejas",
+	"puta", "putas", "puto", "putos",
+	"verga", "vergas",
+];
