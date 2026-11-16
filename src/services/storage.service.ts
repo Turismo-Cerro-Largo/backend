@@ -25,7 +25,17 @@ async function objeto(clave: string, init: RequestInit = {}) {
 	const headers = new Headers(init.headers);
 	headers.set("apikey", apiKey);
 	if (!apiKey.startsWith("sb_secret_")) headers.set("Authorization", `Bearer ${apiKey}`);
-	return fetch(url, { ...init, headers, redirect: "error", signal: AbortSignal.timeout(30000) });
+	const respuesta = await fetch(url, {
+		...init,
+		headers,
+		redirect: "manual",
+		signal: AbortSignal.timeout(30000),
+	});
+	if (respuesta.status >= 300 && respuesta.status < 400) {
+		await respuesta.body?.cancel();
+		throw new Error("Supabase Storage devolvió una redirección inesperada.");
+	}
+	return respuesta;
 }
 
 export async function guardarObjeto(clave: string, file: File) {
