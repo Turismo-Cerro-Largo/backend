@@ -17,6 +17,7 @@ Ejecutá cada comando desde el backend y pegá el valor cuando Wrangler lo pida.
 
 ```cmd
 pnpm exec wrangler secret put DATABASE_URL
+pnpm exec wrangler secret put DATABASE_CA_CERT < prod-ca-2021.crt
 pnpm exec wrangler secret put COOKIE_SECRET
 pnpm exec wrangler secret put SUPABASE_URL
 pnpm exec wrangler secret put SUPABASE_SECRET_KEY
@@ -25,7 +26,7 @@ pnpm exec wrangler secret put GMAIL_USER
 pnpm exec wrangler secret put GMAIL_APP_PASSWORD
 ```
 
-- `DATABASE_URL` es el pooler de Supabase en modo transacción, puerto 6543, con TLS. Usá `DIRECT_URL` para migraciones.
+- `DATABASE_URL` apunta al pooler de Supabase en modo transacción, puerto 6543. Si cargás el certificado raíz de Supabase en `DATABASE_CA_CERT`, omití `sslmode` de esa URL para que el Worker valide TLS con ese certificado. Usá `DIRECT_URL` para migraciones.
 - `SUPABASE_SECRET_KEY` es la clave privada `sb_secret_` del proyecto nuevo. Cargala solo en el backend.
 - `COOKIE_SECRET` debe ser nuevo, aleatorio y de al menos 32 caracteres.
 - Configurá `TURNSTILE_HOSTNAME` con el dominio del frontend y autorizá ese dominio en el widget. Si activás Google, cargá `GOOGLE_ID` y `GOOGLE_SECRET` de la misma forma.

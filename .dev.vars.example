@@ -1,5 +1,6 @@
 NODE_ENV=development
-DATABASE_URL=postgresql://postgres.REF:TU_CONTRASENA@HOST:6543/postgres?sslmode=verify-full
+DATABASE_URL=postgresql://postgres.REF:TU_CONTRASENA@HOST:6543/postgres
+DATABASE_CA_CERT=
 COOKIE_SECRET=
 APP_PUBLIC_URL=http://localhost:5173
 APP_ORIGINS=http://localhost:5173

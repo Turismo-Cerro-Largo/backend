@@ -9,14 +9,19 @@ export function configurarBaseLocal(cliente: () => object) {
 	local = cliente;
 }
 
-function crearCliente(connectionString: string, max: number) {
+function crearCliente(connectionString: string, max: number, ca?: string) {
 	return new PrismaClient({
-		adapter: new PrismaPg({ connectionString, max, connectionTimeoutMillis: 5000 }),
+		adapter: new PrismaPg({
+			connectionString,
+			max,
+			connectionTimeoutMillis: 5000,
+			...(ca ? { ssl: { ca, rejectUnauthorized: true } } : {}),
+		}),
 	});
 }
 
-export async function conBaseDeDatos<T>(url: string, fn: () => Promise<T>) {
-	const cliente = crearCliente(url, 1);
+export async function conBaseDeDatos<T>(url: string, fn: () => Promise<T>, ca?: string) {
+	const cliente = crearCliente(url, 1, ca);
 	try {
 		return await solicitudes.run(cliente, fn);
 	} finally {
