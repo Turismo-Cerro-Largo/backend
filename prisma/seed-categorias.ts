@@ -1,4 +1,5 @@
-
+import "dotenv/config";
+import "../src/configuracion/db-node.js";
 import { prisma } from "../src/configuracion/db.js";
 
 // Categorías de Turismo Cerro Largo 360

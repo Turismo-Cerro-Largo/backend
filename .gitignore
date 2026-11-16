@@ -43,6 +43,9 @@ privados
 .env*
 !.env.example
 .local-mail/
+.dev.vars*
+!.dev.vars.example
+.wrangler/
 
 # npm se usa solo como comprobacion auxiliar; el proyecto usa pnpm
 package-lock.json

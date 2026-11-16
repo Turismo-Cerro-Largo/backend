@@ -1,10 +1,17 @@
 generator client {
   provider = "prisma-client"
+  runtime  = "cloudflare"
   output   = "../src/configuracion/generated/prisma"
 }
 
+generator clientNode {
+  provider = "prisma-client"
+  runtime  = "nodejs"
+  output   = "../src/configuracion/generated/prisma-node"
+}
+
 datasource db {
-  provider = "mysql"
+  provider = "postgresql"
 }
 
 model Usuario {
@@ -150,7 +157,7 @@ model Recurso {
 model Comentario {
   id           Int              @id @default(autoincrement())
   texto        String?          @db.Text
-  calificacion Int              @db.TinyInt
+  calificacion Int              @db.SmallInt
   estado       EstadoComentario @default(PENDIENTE_REVISION)
   creado_en    DateTime         @default(now())
   id_usuario   Int

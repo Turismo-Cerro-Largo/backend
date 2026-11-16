@@ -40,10 +40,10 @@ export async function listar(query: Record<string, string | undefined>) {
 		...(buscar
 			? {
 					OR: [
-						{ texto: { contains: buscar } },
-						{ usuario: { is: { nombres: { contains: buscar } } } },
-						{ usuario: { is: { apellidos: { contains: buscar } } } },
-						{ ubicacion: { is: { nombre: { contains: buscar } } } },
+						{ texto: { contains: buscar, mode: "insensitive" as const } },
+						{ usuario: { is: { nombres: { contains: buscar, mode: "insensitive" as const } } } },
+						{ usuario: { is: { apellidos: { contains: buscar, mode: "insensitive" as const } } } },
+						{ ubicacion: { is: { nombre: { contains: buscar, mode: "insensitive" as const } } } },
 					],
 				}
 			: {}),

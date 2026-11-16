@@ -1,0 +1,17 @@
+NODE_ENV=development
+DATABASE_URL=postgresql://postgres.REF:TU_CONTRASENA@HOST:6543/postgres?sslmode=verify-full
+COOKIE_SECRET=
+APP_PUBLIC_URL=http://localhost:5173
+APP_ORIGINS=http://localhost:5173
+GOOGLE_REDIRECT_URI=http://localhost:5173/api/auth/google
+GOOGLE_ID=
+GOOGLE_SECRET=
+TURNSTILE_SECRET_KEY=
+TURNSTILE_HOSTNAME=localhost
+SUPABASE_URL=
+SUPABASE_SECRET_KEY=
+SUPABASE_STORAGE_BUCKET=cerro-largo-files
+MAIL_MODE=disabled
+GMAIL_USER=
+GMAIL_APP_PASSWORD=
+MAIL_FROM_NAME="Cerro Largo 360"

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { BadRequestError, PayloadTooLargeError } from "../configuracion/AppError.js";
+import { borrarObjeto, guardarObjeto, storageRemoto } from "./storage.service.js";
 
 type Formato = "jpg" | "jpeg" | "png" | "webp" | "gif" | "mp4" | "webm";
 const firmas: Record<Formato, { mime: string; coincide: (bytes: Buffer) => boolean }> = {
@@ -41,7 +42,8 @@ export async function validarArchivo(file: File, permitidos: readonly string[], 
 export async function borrarArchivos(carpeta: "publicos" | "privados", nombres: readonly string[]) {
 	await Promise.all(
 		nombres.map((nombre) =>
-			unlink(path.join(process.cwd(), carpeta, nombre)).catch(() => undefined),
+			(storageRemoto() ? borrarObjeto(`${carpeta}/${nombre}`) : unlink(path.join(process.cwd(), carpeta, nombre)))
+				.catch(() => console.error("No se pudo limpiar un archivo.")),
 		),
 	);
 }
@@ -57,11 +59,13 @@ export async function guardarArchivos(
 	);
 	const ruta = path.join(process.cwd(), carpeta);
 	const guardados: string[] = [];
-	await mkdir(ruta, { recursive: true });
+	const remoto = storageRemoto();
+	if (!remoto) await mkdir(ruta, { recursive: true });
 	try {
 		for (const [indice, archivo] of archivos.entries()) {
 			const nombre = randomUUID() + "." + extensiones[indice];
-			await writeFile(path.join(ruta, nombre), Buffer.from(await archivo.arrayBuffer()), {
+			if (remoto) await guardarObjeto(`${carpeta}/${nombre}`, archivo);
+			else await writeFile(path.join(ruta, nombre), Buffer.from(await archivo.arrayBuffer()), {
 				flag: "wx",
 				...(carpeta === "privados" ? { mode: 0o600 } : {}),
 			});
@@ -81,6 +85,10 @@ const nombreFotoValido = (nombre: string) => /^[0-9a-f-]{36}\.(jpg|png|webp)$/.t
 export async function guardarFotoPerfil(file: File) {
 	const extension = await validarArchivo(file, ["jpg", "jpeg", "png", "webp"], 3);
 	const nombre = randomUUID() + "." + (extension === "jpeg" ? "jpg" : extension);
+	if (storageRemoto()) {
+		await guardarObjeto(`privado/perfiles/${nombre}`, file);
+		return nombre;
+	}
 	await mkdir(directorioFotoPerfil(), { recursive: true });
 	await writeFile(
 		path.join(directorioFotoPerfil(), nombre),
@@ -95,7 +103,7 @@ export async function guardarFotoPerfil(file: File) {
 
 export async function borrarFotoPerfil(nombre: string | null) {
 	if (!nombre || !nombreFotoValido(nombre)) return;
-	await unlink(path.join(directorioFotoPerfil(), nombre)).catch((error: NodeJS.ErrnoException) => {
+	await (storageRemoto() ? borrarObjeto(`privado/perfiles/${nombre}`) : unlink(path.join(directorioFotoPerfil(), nombre))).catch((error: NodeJS.ErrnoException) => {
 		if (error.code !== "ENOENT") console.error("No se pudo limpiar una foto de perfil anterior.");
 	});
 }

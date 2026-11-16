@@ -7,6 +7,7 @@ import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
 import { idValido } from "../shared/parametros.js";
+import { responderObjeto, storageRemoto } from "../../services/storage.service.js";
 
 export async function lugaresMapa(query: Record<string, string | undefined>) {
 	const buscar = (query.buscar || "").trim();
@@ -17,9 +18,9 @@ export async function lugaresMapa(query: Record<string, string | undefined>) {
 			...(buscar
 				? {
 						OR: [
-							{ nombre: { contains: buscar } },
-							{ localidad: { contains: buscar } },
-							{ categoria: { is: { nombre: { contains: buscar } } } },
+							{ nombre: { contains: buscar, mode: "insensitive" as const } },
+							{ localidad: { contains: buscar, mode: "insensitive" as const } },
+							{ categoria: { is: { nombre: { contains: buscar, mode: "insensitive" as const } } } },
 						],
 					}
 				: {}),
@@ -58,14 +59,22 @@ export async function servirRecurso(
 	const demo = /^\/publico\/demo\/([a-zA-Z0-9_-]+\.(?:jpg|jpeg|png|webp|gif|mp4|webm))$/.exec(
 		recurso.uri,
 	);
-	const archivo = evento
-		? path.join(process.cwd(), "publico", "eventos", evento[1])
+	const clave = evento
+		? `publico/eventos/${evento[1]}`
 		: publico
-			? path.join(process.cwd(), "publicos", publico[1])
+			? `publicos/${publico[1]}`
 			: demo
-				? path.join(process.cwd(), "publico", "demo", demo[1])
+				? `publico/demo/${demo[1]}`
 				: null;
-	if (!archivo) throw new NotFoundError();
+	if (!clave) throw new NotFoundError();
+	if (storageRemoto()) {
+		const video = /\.(mp4|webm)$/.test(clave);
+		if (recurso.tipo !== (video ? "VIDEO" : "IMAGEN")) throw new NotFoundError();
+		const respuesta = await responderObjeto(clave, video ? range : undefined, esHead);
+		if (!respuesta) throw new NotFoundError();
+		return respuesta;
+	}
+	const archivo = path.resolve(clave);
 	if (/\.(mp4|webm)$/.test(archivo)) {
 		if (recurso.tipo !== "VIDEO") throw new NotFoundError();
 		const info = await stat(archivo).catch(() => null);

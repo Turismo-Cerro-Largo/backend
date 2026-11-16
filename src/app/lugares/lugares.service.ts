@@ -34,7 +34,7 @@ export async function listar(query: Record<string, string | undefined>) {
 		estado: "PUBLICADO" as const,
 		...(localidad ? { localidad } : {}),
 		...(buscar
-			? { OR: [{ nombre: { contains: buscar } }, { localidad: { contains: buscar } }] }
+			? { OR: [{ nombre: { contains: buscar, mode: "insensitive" as const } }, { localidad: { contains: buscar, mode: "insensitive" as const } }] }
 			: {}),
 	};
 	const [lugares, total] = await Promise.all([

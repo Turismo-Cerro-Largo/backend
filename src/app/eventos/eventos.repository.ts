@@ -46,7 +46,7 @@ export function listarPublicados({
 					? [{ OR: [{ fin: { gte: desde } }, { fin: null, inicio: { gte: desde } }] }]
 					: []),
 				...(buscar
-					? [{ OR: [{ titulo: { contains: buscar } }, { lugar_evento: { contains: buscar } }] }]
+					? [{ OR: [{ titulo: { contains: buscar, mode: "insensitive" as const } }, { lugar_evento: { contains: buscar, mode: "insensitive" as const } }] }]
 					: []),
 			],
 		},
@@ -71,7 +71,7 @@ export function listarAdministrables(
 		...(estado ? { estado } : {}),
 		...(buscar
 			? {
-					OR: [{ titulo: { contains: buscar } }, { descripcion: { contains: buscar } }],
+					OR: [{ titulo: { contains: buscar, mode: "insensitive" as const } }, { descripcion: { contains: buscar, mode: "insensitive" as const } }],
 				}
 			: {}),
 	};
@@ -114,7 +114,7 @@ export function listarCalendario(
 		...(estado ? { estado } : {}),
 		...(buscar
 			? {
-					OR: [{ titulo: { contains: buscar } }, { descripcion: { contains: buscar } }],
+					OR: [{ titulo: { contains: buscar, mode: "insensitive" as const } }, { descripcion: { contains: buscar, mode: "insensitive" as const } }],
 				}
 			: {}),
 	};

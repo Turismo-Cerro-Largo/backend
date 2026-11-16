@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { leerBytes } from "../../services/storage.service.js";
 import path from "node:path";
 import { NotFoundError } from "../../configuracion/AppError.js";
 import { directorioFotoPerfil } from "../../services/archivos.service.js";
@@ -8,7 +8,8 @@ const nombreValido = (nombre: string) => /^[0-9a-f-]{36}\.(jpg|png|webp)$/.test(
 export async function leerFoto(nombre: string | null) {
 	if (!nombre || !nombreValido(nombre)) throw new NotFoundError();
 	try {
-		const bytes = await readFile(path.join(directorioFotoPerfil(), nombre));
+		const bytes = await leerBytes(`privado/perfiles/${nombre}`, path.join(directorioFotoPerfil(), nombre));
+		if (!bytes) throw new NotFoundError();
 		return {
 			bytes,
 			tipo: nombre.endsWith(".jpg")

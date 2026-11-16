@@ -3,7 +3,7 @@ import * as organizadorRepository from "../organizadores/organizadores.repositor
 import * as solicitudRecuperacionRepository from "./recuperacion.datos.repository.js";
 import * as transacciones from "./recuperacion.repository.js";
 import { createHash, randomBytes } from "node:crypto";
-import { hash } from "@node-rs/argon2";
+import { hash } from "../../services/password.service.js";
 import { correoSchema, resetSchema } from "./recuperacion.schema.js";
 import { BadRequestError } from "../../configuracion/AppError.js";
 import { correoConfigurado, enviarRecuperacion, origenRecuperacion } from "./correo.js";

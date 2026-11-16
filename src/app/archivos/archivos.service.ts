@@ -1,7 +1,7 @@
 import * as documentoOrganizadorRepository from "./documentos.repository.js";
 import { recursoVisible, type ObtenerSesion } from "../catalogo/acceso-recursos.js";
 import { getMimeType } from "hono/utils/mime";
-import { readFile } from "node:fs/promises";
+import { leerBytes } from "../../services/storage.service.js";
 import path from "node:path";
 import { BadRequestError, NotFoundError } from "../../configuracion/AppError.js";
 
@@ -38,7 +38,8 @@ export async function privado(archivo: string, sesion: { id: string; rol: string
 	)
 		throw new NotFoundError();
 
-	const contenido = await readFile(path.join(process.cwd(), "privados", archivo)).catch(() => null);
+	if (!/^[0-9a-f-]{36}\.(?:jpg|jpeg|png|webp)$/i.test(archivo)) throw new NotFoundError();
+	const contenido = await leerBytes(`privados/${archivo}`);
 
 	if (!contenido) throw new NotFoundError();
 

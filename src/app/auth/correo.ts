@@ -68,7 +68,8 @@ export async function enviarRecuperacion(email: string, token: string) {
 			"Configurá GMAIL_USER y una contraseña de aplicación de Google de 16 caracteres.",
 		);
 	const transport = nodemailer.createTransport({
-		service: "gmail",
+		host: "smtp.gmail.com",
+		port: 465,
 		secure: true,
 		auth: gmail,
 		connectionTimeout: 10000,
@@ -127,7 +128,9 @@ Si no solicitaste esta cuenta, ignorá este correo.
 	}
 
 	const transporte = nodemailer.createTransport({
-		service: "gmail",
+		host: "smtp.gmail.com",
+		port: 465,
+		secure: true,
 		auth: gmail,
 		connectionTimeout: 10000,
 		greetingTimeout: 10000,

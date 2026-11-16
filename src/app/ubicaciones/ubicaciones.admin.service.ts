@@ -107,9 +107,9 @@ export async function listar(query: Record<string, string | undefined>) {
 		...(buscar
 			? {
 					OR: [
-						{ nombre: { contains: buscar } },
-						{ localidad: { contains: buscar } },
-						{ descripcion: { contains: buscar } },
+						{ nombre: { contains: buscar, mode: "insensitive" as const } },
+						{ localidad: { contains: buscar, mode: "insensitive" as const } },
+						{ descripcion: { contains: buscar, mode: "insensitive" as const } },
 					],
 				}
 			: {}),

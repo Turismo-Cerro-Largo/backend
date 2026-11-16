@@ -20,7 +20,7 @@ describe("mailer de Google", () => {
     it("envía por Gmail, normaliza la clave y usa la misma cuenta como remitente", async () => {
         expect(correoConfigurado()).toBe(true);
         await enviarRecuperacion("destino@example.com", "abc123");
-        expect(mailer.createTransport).toHaveBeenCalledWith(expect.objectContaining({ service: "gmail", secure: true, auth: { user: "cuenta@gmail.com", pass: "abcdefghijklmnop" } }));
+        expect(mailer.createTransport).toHaveBeenCalledWith(expect.objectContaining({ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: "cuenta@gmail.com", pass: "abcdefghijklmnop" } }));
         const mensaje = mailer.sendMail.mock.calls[0]![0];
         expect(mensaje.from).toEqual({ name: "Cerro Largo 360", address: "cuenta@gmail.com" });
         expect(mensaje.to).toBe("destino@example.com");

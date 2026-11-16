@@ -2,9 +2,8 @@ import { correoEnUso } from "../shared/correo-en-uso.js";
 import * as usuarioRepository from "../usuarios/usuarios.repository.js";
 import * as organizadorRepository from "../organizadores/organizadores.repository.js";
 import { admitirIntento } from "./recuperacion.service.js";
-import { hash, verify } from "@node-rs/argon2";
-import { unlink } from "node:fs/promises";
-import path from "node:path";
+import { hash, verify } from "../../services/password.service.js";
+import { borrarArchivos } from "../../services/archivos.service.js";
 import {
 	BadRequestError,
 	ConflictError,
@@ -216,11 +215,7 @@ export async function registrarOrganizador(body: unknown, frente: string, dorso:
 			},
 		});
 	} catch (e) {
-		await Promise.all(
-			[frente, dorso].map((nombre) =>
-				unlink(path.join(process.cwd(), "privados", nombre)).catch(() => undefined),
-			),
-		);
+		await borrarArchivos("privados", [frente, dorso]);
 
 		if ((e as { code?: string }).code === "P2002")
 			throw new ConflictError("Ese correo o RUT ya está registrado.");

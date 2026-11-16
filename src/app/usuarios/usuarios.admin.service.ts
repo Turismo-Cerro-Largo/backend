@@ -1,4 +1,4 @@
-import { hash } from "@node-rs/argon2";
+import { hash } from "../../services/password.service.js";
 import { correoEnUso } from "../shared/correo-en-uso.js";
 import { administradorSchema } from "./usuarios.admin.schema.js";
 import { gestionarAcceso } from "../shared/acceso-admin.service.js";
@@ -81,17 +81,17 @@ export async function listar(query: Record<string, string | undefined>) {
 					OR: [
 						{
 							nombres: {
-								contains: buscar,
+								contains: buscar, mode: "insensitive" as const,
 							},
 						},
 						{
 							apellidos: {
-								contains: buscar,
+								contains: buscar, mode: "insensitive" as const,
 							},
 						},
 						{
 							email: {
-								contains: buscar,
+								contains: buscar, mode: "insensitive" as const,
 							},
 						},
 					],

@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "cerro-largo-api-cloud-2",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "NODE_ENV": "production",
+    "APP_PUBLIC_URL": "https://cerro-largo-360-cloud-2.vercel.app",
+    "APP_ORIGINS": "https://cerro-largo-360-cloud-2.vercel.app",
+    "GOOGLE_REDIRECT_URI": "https://cerro-largo-360-cloud-2.vercel.app/api/auth/google",
+    "MAIL_MODE": "gmail",
+    "SUPABASE_STORAGE_BUCKET": "cerro-largo-files"
+  }
+}

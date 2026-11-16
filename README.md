@@ -2,17 +2,17 @@
 
 Cerro Largo 360 es un portal para descubrir lugares, eventos y servicios turísticos del departamento. Este repositorio contiene la API que usa el sitio para consultar el catálogo y los horarios de ómnibus, administrar contenido y gestionar las cuentas de turistas y organizadores.
 
-En la rama `loca`, la API usa Node.js, Hono y TypeScript. Prisma conecta con MySQL o MariaDB.
+En `cloud-2`, la API usa Hono y Prisma con PostgreSQL. Consultá [el despliegue de cloud-2](DEPLOY-CLOUD-2.md) para publicar el Worker con Supabase.
 
 ## Desarrollo local
 
 1. Instalá las dependencias con `pnpm install`.
-2. Copiá [`.env.example`](.env.example) a `.env`. Configurá `DATABASE_URL` y `DATABASE_*` para la misma base, completá `COOKIE_SECRET` y revisá `APP_PUBLIC_URL` y `APP_ORIGINS`.
+2. Copiá [`.dev.vars.example`](.dev.vars.example) a `.dev.vars`. Configurá `DATABASE_URL` con PostgreSQL, completá `COOKIE_SECRET` y revisá `APP_PUBLIC_URL` y `APP_ORIGINS`. Para ejecutar las migraciones, configurá `DIRECT_URL` en `.env`.
 3. Para una base nueva, aplicá las migraciones, generá el cliente e iniciá el servidor.
 
 ```sh
-pnpm orm:deploy --config prisma7.config.ts
-pnpm orm:generate --config prisma7.config.ts
+pnpm db:deploy
+pnpm orm:generate
 pnpm dev
 ```
 
@@ -20,7 +20,7 @@ La API escucha en `http://localhost:4000`. Si ya tenés una base con datos, revi
 
 Para probar login, registro y solicitud de recuperación, configurá `TURNSTILE_SECRET_KEY`. Para enviar los correos de verificación y recuperación, usá `MAIL_MODE=gmail`, `GMAIL_USER` y `GMAIL_APP_PASSWORD`. El inicio de sesión con Google tiene sus propias credenciales.
 
-`pnpm test` ejecuta las pruebas y `pnpm build` compila la API. La rama `cloud` contiene la configuración de Cloudflare Workers, D1 y Supabase Storage.
+`pnpm test` ejecuta las pruebas, `pnpm build` compila la API y `pnpm dev:worker` inicia Wrangler localmente.
 
 ## Organización de las rutas
 
