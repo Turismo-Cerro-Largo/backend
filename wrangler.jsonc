@@ -15,8 +15,9 @@
   "vars": {
     "NODE_ENV": "production",
     "APP_PUBLIC_URL": "https://cerrolargo360.vercel.app",
-    "APP_ORIGINS": "https://cerrolargo360.vercel.app,https://cerro-largo-360-cloud-2.vercel.app",
-    "GOOGLE_REDIRECT_URI": "https://cerro-largo-360-cloud-2.vercel.app/api/auth/google",
+    "APP_ORIGINS": "https://cerrolargo360.vercel.app",
+    "GOOGLE_REDIRECT_URI": "https://cerrolargo360.vercel.app/api/auth/google",
+    "TURNSTILE_HOSTNAME": "cerrolargo360.vercel.app",
     "MAIL_MODE": "gmail",
     "SUPABASE_STORAGE_BUCKET": "cerro-largo-files"
   }
