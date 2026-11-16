@@ -6,6 +6,12 @@
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "preview_urls": false,
+  "hyperdrive": [
+    {
+      "binding": "HYPERDRIVE",
+      "id": "f2857278e52c47fba8226b0d999e0bb5"
+    }
+  ],
   "vars": {
     "NODE_ENV": "production",
     "APP_PUBLIC_URL": "https://cerro-largo-360-cloud-2.vercel.app",

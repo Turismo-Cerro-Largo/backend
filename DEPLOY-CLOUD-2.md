@@ -13,6 +13,8 @@ Esta rama parte de `loca` y usa PostgreSQL y Storage de un proyecto Supabase nue
 
 Revisá el dominio nuevo de Vercel en `APP_PUBLIC_URL`, `APP_ORIGINS` y `GOOGLE_REDIRECT_URI` en `wrangler.jsonc`. Si Google OAuth está habilitado, agregá ese callback en Google Cloud.
 
+El Worker desplegado se conecta a PostgreSQL con el binding `HYPERDRIVE`. Configurá Hyperdrive con el host directo de Supabase, `verify-full` y el certificado raíz de Supabase. Mantené desactivada la caché de consultas para que los cambios de la aplicación se vean de inmediato.
+
 Ejecutá cada comando desde el backend y pegá el valor cuando Wrangler lo pida.
 
 ```cmd
