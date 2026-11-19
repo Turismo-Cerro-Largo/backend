@@ -62,8 +62,13 @@ export async function emitirCodigoRegistro(email: string, tipo: Tipo) {
 		} else {
 			await verificacionCorreoRepository.deleteMany({ where: { email, codigo_hash: codigoHash } });
 		}
-		const detalle = error as { code?: string; responseCode?: number };
-		console.error("Falló el envío del código de registro", { code: detalle.code, responseCode: detalle.responseCode });
+		const detalle = error as { code?: string; responseCode?: number; command?: string; message?: string };
+		console.error("Falló el envío del código de registro", {
+			code: detalle.code,
+			responseCode: detalle.responseCode,
+			command: detalle.command,
+			conexion: detalle.code === "ESOCKET" ? detalle.message?.replace(/[\w.+-]+@[\w.-]+/g, "[correo]").slice(0, 250) : undefined,
+		});
 		throw error;
 	}
 }
