@@ -1,4 +1,6 @@
 import { gestionarAcceso } from "../shared/acceso-admin.service.js";
+import { eliminarDefinitivamente } from "./organizadores.repository.js";
+import { limpiarArchivosCuenta } from "../shared/limpiar-archivos-cuenta.js";
 import type { EstadoAcceso } from "../../configuracion/generated/prisma/enums.js";
 import {
 	cambiarAcceso as persistirAcceso,
@@ -61,3 +63,9 @@ export const organizadoresAdminService = {
 
 export const cambiarAcceso = (id: string, estado: EstadoAcceso) =>
 	gestionarAcceso(id, estado, { cambiarAcceso: persistirAcceso, findUnique: buscarCuenta });
+
+export async function eliminar(valorId: string) {
+	const archivos = await eliminarDefinitivamente(idValido(valorId));
+	if (!archivos) throw new NotFoundError();
+	await limpiarArchivosCuenta(archivos);
+}

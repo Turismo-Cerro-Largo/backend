@@ -1,4 +1,6 @@
 import { hash } from "@node-rs/argon2";
+import { limpiarArchivosCuenta } from "../shared/limpiar-archivos-cuenta.js";
+import { ForbiddenError } from "../../configuracion/AppError.js";
 import { correoEnUso } from "../shared/correo-en-uso.js";
 import { administradorSchema } from "./usuarios.admin.schema.js";
 import { gestionarAcceso } from "../shared/acceso-admin.service.js";
@@ -256,6 +258,16 @@ export async function detalle(valorId: string) {
 
 export const cambiarAcceso = (id: string, estado: EstadoAcceso) =>
 	gestionarAcceso(id, estado, { cambiarAcceso: persistirAcceso, findUnique: buscarCuenta });
+
+export async function eliminar(valorId: string) {
+	const id = idValido(valorId);
+	const cuenta = await usuarioRepository.findUnique({ where: { id }, select: { rol: true } });
+	if (!cuenta) throw new NotFoundError();
+	if (cuenta.rol !== "TURISTA") throw new ForbiddenError("No se puede eliminar una cuenta administradora.");
+	const archivos = await usuarioRepository.eliminarDefinitivamente(id);
+	if (!archivos) throw new NotFoundError();
+	await limpiarArchivosCuenta(archivos);
+}
 
 export async function crearAdministrador(body: unknown) {
 	const datos = administradorSchema.safeParse(body);

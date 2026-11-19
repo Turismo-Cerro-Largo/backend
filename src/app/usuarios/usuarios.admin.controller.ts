@@ -29,7 +29,7 @@ app.patch("/:id/acceso", bodyLimitado(2, "KB"), async (c) =>
 	),
 );
 app.delete("/:id", async (c) => {
-	await servicio.cambiarAcceso(c.req.param("id"), "ELIMINADO");
+	await servicio.eliminar(c.req.param("id"));
 	return c.body(null, 204);
 });
 
