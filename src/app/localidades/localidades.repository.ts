@@ -1,6 +1,15 @@
 import { prisma } from "../../configuracion/db.js";
 import type { Prisma } from "../../configuracion/generated/prisma/client.js";
 
+export function limitesPublicados(nombres: string[]) {
+	return prisma.ubicacion.groupBy({
+		by: ["localidad"],
+		where: { estado: "PUBLICADO", localidad: { in: nombres } },
+		_min: { latitud: true, longitud: true },
+		_max: { latitud: true, longitud: true },
+	});
+}
+
 export function findMany<T extends Prisma.LocalidadFindManyArgs>(
 	args: Prisma.SelectSubset<T, Prisma.LocalidadFindManyArgs>,
 ) {
