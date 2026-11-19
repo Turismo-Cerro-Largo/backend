@@ -3,6 +3,22 @@ import { z } from "zod";
 import { mkdir, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { connect } from "node:tls";
+import type SMTPTransport from "nodemailer/lib/smtp-transport/index.js";
+
+const socketGmail: NonNullable<SMTPTransport.Options["getSocket"]> = (_opciones, callback) => {
+	const socket = connect({ host: "smtp.gmail.com", port: 465, servername: "smtp.gmail.com", rejectUnauthorized: true });
+	let terminado = false;
+	const timer = setTimeout(() => socket.destroy(new Error("Tiempo de conexión SMTP agotado.")), 10000);
+	socket.once("error", (error) => {
+		clearTimeout(timer);
+		if (!terminado) { terminado = true; callback(error, {}); }
+	});
+	socket.once("secureConnect", () => {
+		clearTimeout(timer);
+		if (!terminado) { terminado = true; callback(null, { connection: socket, secured: true }); }
+	});
+};
 
 function cuentaGmail() {
 	const user = process.env.GMAIL_USER?.trim() || "";
@@ -68,6 +84,7 @@ export async function enviarRecuperacion(email: string, token: string) {
 			"Configurá GMAIL_USER y una contraseña de aplicación de Google de 16 caracteres.",
 		);
 	const transport = nodemailer.createTransport({
+		getSocket: socketGmail,
 		host: "smtp.gmail.com",
 		port: 465,
 		secure: true,
@@ -128,6 +145,7 @@ Si no solicitaste esta cuenta, ignorá este correo.
 	}
 
 	const transporte = nodemailer.createTransport({
+		getSocket: socketGmail,
 		host: "smtp.gmail.com",
 		port: 465,
 		secure: true,
