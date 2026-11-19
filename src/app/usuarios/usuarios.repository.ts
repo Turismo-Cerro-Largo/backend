@@ -1,6 +1,16 @@
 import { prisma } from "../../configuracion/db.js";
 import type { Prisma } from "../../configuracion/generated/prisma/client.js";
 
+export function eliminarDefinitivamente(id: number) {
+	return prisma.$transaction(async (tx) => {
+		const cuenta = await tx.usuario.findUnique({ where: { id }, include: { comentarios: { include: { recursos: { select: { uri: true } } } } } });
+		if (!cuenta || cuenta.rol !== "TURISTA") return null;
+		await tx.verificacionCorreo.deleteMany({ where: { email: cuenta.email, tipo: "TURISTA" } });
+		await tx.usuario.delete({ where: { id } });
+		return { foto: cuenta.foto_perfil, recursos: cuenta.comentarios.flatMap(comentario => comentario.recursos.map(recurso => recurso.uri)) };
+	});
+}
+
 export function findUnique<T extends Prisma.UsuarioFindUniqueArgs>(
 	args: Prisma.SelectSubset<T, Prisma.UsuarioFindUniqueArgs>,
 ) {

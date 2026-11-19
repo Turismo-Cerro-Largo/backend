@@ -1,5 +1,5 @@
 import { estadoAcceso } from "../shared/acceso-admin.schema.js";
-import { cambiarAcceso } from "./organizadores.admin.service.js";
+import { cambiarAcceso, eliminar } from "./organizadores.admin.service.js";
 import { Hono, type Context } from "hono";
 import { BadRequestError } from "../../configuracion/AppError.js";
 import { RequerirAdministrador } from "../../middleware/Session.js";
@@ -37,7 +37,7 @@ admin.patch("/:id/acceso", bodyLimitado(2, "KB"), async (c) =>
 	),
 );
 admin.delete("/:id", async (c) => {
-	await cambiarAcceso(c.req.param("id"), "ELIMINADO");
+	await eliminar(c.req.param("id"));
 	return c.body(null, 204);
 });
 
