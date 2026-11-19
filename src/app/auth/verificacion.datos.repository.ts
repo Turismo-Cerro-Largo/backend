@@ -18,3 +18,7 @@ export function updateMany<T extends Prisma.VerificacionCorreoUpdateManyArgs>(
 ) {
 	return prisma.verificacionCorreo.updateMany(args);
 }
+
+export function deleteMany(args: Prisma.VerificacionCorreoDeleteManyArgs) {
+	return prisma.verificacionCorreo.deleteMany(args);
+}
