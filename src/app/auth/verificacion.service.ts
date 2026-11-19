@@ -31,12 +31,14 @@ export async function emitirCodigoRegistro(email: string, tipo: Tipo) {
 	}
 
 	const codigo = String(randomInt(0, 1000000)).padStart(6, "0");
+	const anterior = await verificacionCorreoRepository.findUnique({ where: { email } });
+	const codigoHash = firma(email, tipo, codigo);
 
 	await verificacionCorreoRepository.upsert({
 		where: { email },
 		update: {
 			tipo,
-			codigo_hash: firma(email, tipo, codigo),
+			codigo_hash: codigoHash,
 			expira_en: new Date(Date.now() + DURACION),
 			enviado_en: new Date(),
 			intentos: 0,
@@ -44,12 +46,26 @@ export async function emitirCodigoRegistro(email: string, tipo: Tipo) {
 		create: {
 			email,
 			tipo,
-			codigo_hash: firma(email, tipo, codigo),
+			codigo_hash: codigoHash,
 			expira_en: new Date(Date.now() + DURACION),
 		},
 	});
 
-	await enviarCodigoRegistro(email, codigo);
+	try {
+		await enviarCodigoRegistro(email, codigo);
+	} catch (error) {
+		if (anterior) {
+			await verificacionCorreoRepository.updateMany({
+				where: { email, codigo_hash: codigoHash },
+				data: { tipo: anterior.tipo, codigo_hash: anterior.codigo_hash, expira_en: anterior.expira_en, intentos: anterior.intentos },
+			});
+		} else {
+			await verificacionCorreoRepository.deleteMany({ where: { email, codigo_hash: codigoHash } });
+		}
+		const detalle = error as { code?: string; responseCode?: number };
+		console.error("Falló el envío del código de registro", { code: detalle.code, responseCode: detalle.responseCode });
+		throw error;
+	}
 }
 
 export async function confirmar(json: unknown) {
