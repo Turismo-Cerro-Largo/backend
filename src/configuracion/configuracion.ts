@@ -1,8 +1,12 @@
+// src/configuracion/configuracion.ts
+import { verificarOrigen, origenesPermitidos } from "../middleware/Origen.js";
 import type { Hono } from "hono";
 import { cors } from "hono/cors";
+import { csrf } from "hono/csrf";
+import { HTTPException } from "hono/http-exception";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
-import { AppError } from "./AppError.js";
+import { AppError, CuentaBloqueadaError } from "./AppError.js";
 
 /**
  * Helper para cargar los middleware
@@ -11,7 +15,16 @@ import { AppError } from "./AppError.js";
 export const Configuracion = (app: Hono) => {
 	app.use("*", logger());
 
-	app.use("*", cors());
+	app.use(
+		"*",
+		cors({
+			origin: (origin) => (origenesPermitidos().includes(origin) ? origin : undefined),
+			credentials: true,
+		}),
+	);
+	app.use("*", csrf({ origin: origenesPermitidos() }));
+	// El middleware oficial cubre formularios. Esta regla conserva el control de JSON.
+	app.use("*", verificarOrigen);
 
 	app.use(
 		"*",
@@ -34,10 +47,13 @@ export const Configuracion = (app: Hono) => {
 			return c.json(
 				{
 					message: err.message,
+					...(err instanceof CuentaBloqueadaError ? { code: err.code } : {}),
 				},
 				err.statusCode as any,
 			);
 		}
+
+		if (err instanceof HTTPException) return err.getResponse();
 
 		return c.json(
 			{

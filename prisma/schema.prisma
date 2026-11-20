@@ -12,7 +12,12 @@ model Usuario {
   nombres          String    @db.VarChar(100)
   apellidos        String    @db.VarChar(100)
   email            String    @unique
+  email_verificado Boolean   @default(true)
+  estado_acceso EstadoAcceso @default(ACTIVO)
+  version_sesion Int @default(0)
   departamento     String?   @db.VarChar(100)
+  localidad        String?   @db.VarChar(120)
+  foto_perfil      String?   @db.VarChar(255)
   fecha_nacimiento DateTime? @db.Date
   telefono         String?   @db.VarChar(30)
   genero           Genero?
@@ -21,6 +26,7 @@ model Usuario {
   rol              Rol       @default(TURISTA)
   sub              String?   @unique
   creado_en        DateTime  @default(now())
+  
 
   comentarios    Comentario[]
   favoritos      Favorito[]
@@ -34,18 +40,26 @@ model Usuario {
 model Organizador {
   id                  Int                     @id @default(autoincrement())
   nombre_organizacion String                  @db.VarChar(150)
-  rut_ruc             String                  @unique @db.VarChar(30)
+  rut_ruc             String?                 @unique @db.VarChar(30)
   departamento     String?   @db.VarChar(100)
   email               String                  @unique
+  email_verificado    Boolean                 @default(true)
+  estado_acceso EstadoAcceso @default(ACTIVO)
+  version_sesion Int @default(0)
   telefono            String                  @db.VarChar(30)
   sitio_web           String?                 @db.VarChar(500)
   passhash            String                  @db.VarChar(255)
   estado              EstadoOrganizador       @default(PENDIENTE_REVISION)
   motivo_rechazo      String?                 @db.Text
   creado_en           DateTime                @default(now())
+   acepta_terminos    Boolean   @default(false)
+  acepta_privacidad  Boolean   @default(false)
+  version_documentos String?   @db.VarChar(40)
+  aceptado_en        DateTime?
   documentos          DocumentoOrganizador[]
   eventos             Evento[]
   recuperaciones      SolicitudRecuperacion[]
+  
 
   @@index([email])
   @@index([estado])
@@ -74,6 +88,21 @@ model Categoria {
   @@map("categoria")
 }
 
+model Localidad {
+  id             Int             @id @default(autoincrement())
+  slug           String          @unique @db.VarChar(120)
+  nombre         String          @unique @db.VarChar(120)
+  descripcion    String?         @db.VarChar(500)
+  latitud        Decimal?        @db.Decimal(10, 7)
+  longitud       Decimal?        @db.Decimal(10, 7)
+  icono          String?         @db.VarChar(255)
+  estado         EstadoContenido @default(PUBLICADO)
+  creado_en      DateTime        @default(now())
+  actualizado_en DateTime        @updatedAt
+
+  @@index([estado, nombre])
+  @@map("localidad")
+}
 model Ubicacion {
   id           Int             @id @default(autoincrement())
   nombre       String          @db.VarChar(150)
@@ -276,4 +305,28 @@ enum DocumentoTipo {
 enum TipoServicioTransporte {
   DEPARTAMENTAL
   INTERDEPARTAMENTAL
+}
+
+model VerificacionCorreo {
+  id          Int              @id @default(autoincrement())
+  email       String           @unique @db.VarChar(254)
+  tipo        TipoVerificacion
+  codigo_hash String           @db.VarChar(64)
+  expira_en   DateTime
+  enviado_en  DateTime         @default(now())
+  intentos    Int              @default(0)
+
+  @@index([expira_en])
+  @@map("verificacion_correo")
+}
+
+enum TipoVerificacion {
+  TURISTA
+  ORGANIZADOR
+}
+
+enum EstadoAcceso {
+  ACTIVO
+  BLOQUEADO
+  ELIMINADO
 }

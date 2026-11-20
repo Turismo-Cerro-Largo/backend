@@ -1,47 +1,37 @@
-# Backend - Cerro Largo 360
+# Cerro Largo 360 · Backend
 
-```bash
-npm install
-npm run dev
+Cerro Largo 360 es un portal para descubrir lugares, eventos y servicios turísticos del departamento. Este repositorio contiene la API que usa el sitio para consultar el catálogo y los horarios de ómnibus, administrar contenido y gestionar las cuentas de turistas y organizadores.
+
+En la rama `loca`, la API usa Node.js, Hono y TypeScript. Prisma conecta con MySQL o MariaDB.
+
+## Desarrollo local
+
+1. Instalá las dependencias con `pnpm install`.
+2. Copiá [`.env.example`](.env.example) a `.env`. Configurá `DATABASE_URL` y `DATABASE_*` para la misma base, completá `COOKIE_SECRET` y revisá `APP_PUBLIC_URL` y `APP_ORIGINS`.
+3. Para una base nueva, aplicá las migraciones, generá el cliente e iniciá el servidor.
+
+```sh
+pnpm orm:deploy --config prisma7.config.ts
+pnpm orm:generate --config prisma7.config.ts
+pnpm dev
 ```
 
-Abrir: `http://localhost:3000`
+La API escucha en `http://localhost:4000`. Si ya tenés una base con datos, revisá el historial de migraciones antes de aplicar cambios.
 
-## Base de datos
+Para probar login, registro y solicitud de recuperación, configurá `TURNSTILE_SECRET_KEY`. Para enviar los correos de verificación y recuperación, usá `MAIL_MODE=gmail`, `GMAIL_USER` y `GMAIL_APP_PASSWORD`. El inicio de sesión con Google tiene sus propias credenciales.
 
-El backend utiliza **MySQL/MariaDB + Prisma ORM 7**.
+`pnpm test` ejecuta las pruebas y `pnpm build` compila la API. La rama `cloud` contiene la configuración de Cloudflare Workers, D1 y Supabase Storage.
 
-El modelo completo está en:
+## Organización de las rutas
 
-- `prisma/schema.prisma`
-- `prisma/migrations/20260923215100_base_datos_mer_documentacion/migration.sql`
-- `docs/base-de-datos.md`
+Las rutas se montan bajo `/api` desde [`src/app/app-router.ts`](src/app/app-router.ts).
 
-### Configuración
+| Ruta | Qué ofrece |
+| --- | --- |
+| `/api/auth` | Login, registro, sesión, verificación de correo y recuperación de contraseña. |
+| `/api/admin` | Gestión del catálogo, usuarios, organizadores y moderación. |
+| `/api/organizador` | Perfil y gestión de eventos propios. |
+| `/api/turista` | Perfil, favoritos y valoraciones. |
+| `/api/lugares`, `/api/localidades`, `/api/eventos` y `/api/transporte` | Consultas públicas del catálogo y del transporte. |
 
-Las migraciones usan `DATABASE_URL` desde `prisma7.config.ts`.
-La conexión de la aplicación usa además:
-
-- `DATABASE_HOST`
-- `DATABASE_USER`
-- `DATABASE_PASSWORD`
-- `DATABASE_NAME`
-- `DATABASE_PORT`
-
-### Aplicar migraciones
-
-```bash
-npm run orm:deploy
-npm run orm:generate
-```
-
-Durante desarrollo también se puede usar:
-
-```bash
-npx prisma migrate dev
-npx prisma generate
-```
-
-> Importante: la primera migración histórica del repositorio contenía solamente una tabla
-> `usuario` de prueba. La migración del modelo completo reemplaza esa tabla. Si alguien
-> hubiera cargado datos reales en ella, debe respaldarlos antes de aplicar la nueva migración.
+El esquema está en [`prisma/schema.prisma`](prisma/schema.prisma). Para detalles de trabajo, consultá [`AGENTS.md`](AGENTS.md).

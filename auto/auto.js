@@ -3,6 +3,7 @@
 // auto/auto.js
 
 import { hash } from '@node-rs/argon2';
+import { ubicacionesLocalidades, validarCoberturaLocalidades } from './ubicaciones-localidades.js';
 import { prisma } from './../src/configuracion/db.js';
 import { mkdir, copyFile, access, readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -48,6 +49,78 @@ async function buscarImagenDF() {
 // FUNCIÓN PRINCIPAL
 // ========================================
 
+// ========================================
+// TRANSPORTE URUBUS
+// ========================================
+
+async function cargarHorariosUrubus() {
+    // Datos proporcionados de la búsqueda de Urubus para el viernes 23/10/2026.
+    // Son una referencia de esa fecha, no frecuencias diarias confirmadas.
+    // Las llegadas con hora menor a la salida corresponden al sábado 24.
+    // El esquema actual guarda horas, empresa, recorrido, días y precio.
+    // Recorrido comercial, comodidad y asientos quedan como referencia del listado;
+    // la disponibilidad de asientos no se publica como disponibilidad actual.
+    const viajes = [
+        { empresa: 'EGA', salida: '13:30', llegada: '19:25', recorrido: 'DE LINEA', detalle: 'MONTEVIDEO - X RUTA 8', asientos: null, comodidad: null },
+        { empresa: 'TURISMAR', salida: '14:30', llegada: '20:00', recorrido: 'DIRECTO', detalle: 'Melo Terminal [Coche 4]', asientos: 12, comodidad: null },
+        { empresa: 'NUÑEZ', salida: '14:30', llegada: '20:20', recorrido: 'DIRECTO', asientos: 13, comodidad: 'Clásico' },
+        { empresa: 'NUÑEZ', salida: '14:30', llegada: '20:45', recorrido: 'SEMI-DIRECTO', asientos: 57, comodidad: 'Clásico' },
+        { empresa: 'TURISMAR', salida: '14:30', llegada: '21:10', recorrido: 'DE LINEA', detalle: 'Melo Terminal [Coche 5]', asientos: 31, comodidad: null },
+        { empresa: 'NUÑEZ', salida: '17:30', llegada: '23:15', recorrido: 'DIRECTO', asientos: 18, comodidad: 'Clásico' },
+        { empresa: 'EGA', salida: '18:30', llegada: '00:20', recorrido: 'DE LINEA', detalle: 'MONTEVIDEO - X RUTA 8', asientos: null, comodidad: null },
+        { empresa: 'TURISMAR', salida: '20:30', llegada: '02:00', recorrido: 'DIRECTO', detalle: 'Melo Terminal [Coche 4]', asientos: 24, comodidad: null },
+        { empresa: 'TURISMAR', salida: '20:30', llegada: '02:40', recorrido: 'DE LINEA', detalle: 'Melo Terminal [Coche 5]', asientos: 39, comodidad: null },
+        { empresa: 'NUÑEZ', salida: '21:30', llegada: '03:30', recorrido: 'SEMI-DIRECTO', asientos: 44, comodidad: 'Clásico' },
+        { empresa: 'NUÑEZ', salida: '23:00', llegada: '05:00', recorrido: 'DE LINEA', detalle: '(x Ruta 7) [Coche 1]', asientos: 30, comodidad: 'Clásico' },
+        { empresa: 'EGA', salida: '23:30', llegada: '04:50', recorrido: 'DE LINEA', detalle: 'MONTEVIDEO - X RUTA 8', asientos: null, comodidad: null },
+    ];
+
+    const empresas = new Map();
+    for (const nombre of new Set(viajes.map((viaje) => viaje.empresa))) {
+        const empresa = await prisma.empresaTransporte.upsert({
+            where: { nombre },
+            update: {},
+            create: { nombre, sitio_web: 'https://www.urubus.com.uy/' },
+        });
+        empresas.set(nombre, empresa.id);
+    }
+
+    let creados = 0;
+    for (const viaje of viajes) {
+        const datos = {
+            origen: 'Montevideo',
+            destino: 'Melo',
+            hora_salida: new Date(`1970-01-01T${viaje.salida}:00Z`),
+            hora_llegada: new Date(`1970-01-01T${viaje.llegada}:00Z`),
+            dias: 'Viernes',
+            tipo_servicio: 'INTERDEPARTAMENTAL',
+            precio: null,
+            estado: 'PUBLICADO',
+            id_empresa: empresas.get(viaje.empresa),
+        };
+        // Incluir llegada permite conservar los servicios de la misma empresa
+        // que salen a la misma hora pero tienen recorridos de distinta duración.
+        const existente = await prisma.horarioOmnibus.findFirst({
+            where: {
+                origen: datos.origen,
+                destino: datos.destino,
+                id_empresa: datos.id_empresa,
+                hora_salida: datos.hora_salida,
+                hora_llegada: datos.hora_llegada,
+                dias: { in: [datos.dias, 'Viernes 23/10/2026'] },
+            },
+        });
+        if (existente && existente.dias !== datos.dias) {
+            await prisma.horarioOmnibus.update({ where: { id: existente.id }, data: { dias: datos.dias } });
+        }
+        if (!existente) {
+            await prisma.horarioOmnibus.create({ data: datos });
+            creados++;
+        }
+    }
+    console.log(`Horarios Urubus Montevideo → Melo: ${creados} creados, ${viajes.length - creados} existentes`);
+}
+
 async function main() {
 
     // ========================================
@@ -59,6 +132,7 @@ async function main() {
         ['Alojamiento', 'Hoteles, hostales, posadas y opciones de hospedaje.'],
         ['Restaurantes', 'Restaurantes, cafeterías y propuestas gastronómicas locales.'],
         ['Cultura', 'Museos, monumentos, patrimonio histórico y espacios culturales.'],
+        ['Compras', 'Free shops y comercios para visitar en la frontera.'],
         ['Eventos sociales', 'Ferias, festivales, fiestas y encuentros sociales.'],
         ['Parques / Naturaleza', 'Parques, reservas naturales, lagunas y espacios al aire libre.'],
     ];
@@ -66,6 +140,20 @@ async function main() {
 
 
 
+    // Localidades señaladas en el mapa de Cerro Largo. Las coordenadas y los iconos
+    // se completan desde el panel; no se sobreescriben al volver a ejecutar auto.
+    const localidades = [
+        ['Melo', 'Melo'],
+        ['Rio-Branco', 'Río Branco'],
+        ['Laguna-Merin', 'Laguna Merín'],
+        ['Fraile-Muerto', 'Fraile Muerto'],
+        ['Isidoro-Noblia', 'Isidoro Noblía'],
+        ['Acegua', 'Aceguá'],
+        ['Tupambae', 'Tupambaé'],
+        ['Arevalo', 'Arévalo'],
+        ['Placido-Rosas', 'Plácido Rosas'],
+        ['Centurion', 'Centurión']
+    ];
     // ========================================
     // USUARIOS
     // ========================================
@@ -76,7 +164,7 @@ async function main() {
             apellidos: 'usuario',
             email: 'usuario@gmail.com',
             rol: 'TURISTA',
-            password: 'Usuario#123',
+            password: 'Usuario#12345',
             departamento: 'Cerro Largo',
             genero: 'otro'
         },
@@ -85,7 +173,7 @@ async function main() {
             apellidos: 'admin',
             email: 'admin@gmail.com',
             rol: 'ADMINISTRADOR',
-            password: 'Admin#12345',
+            password: 'Admin#123456',
             departamento: 'Cerro Largo'
         }
     ];
@@ -102,7 +190,7 @@ async function main() {
             telefono: '099123456',
             departamento: 'Cerro Largo',
             estado: 'APROBADO',
-            password: 'Organizador#123'
+            password: 'Organizador#12345'
         }
     ];
 
@@ -231,8 +319,8 @@ async function main() {
             telefono: '+55 53 99946-0598',
             sitio_web: 'https://www.instagram.com/rpgalpondepiedra/',
             horario: 'Todos los días de 11:30 a 14:00',
-            latitud: -34.7417797,
-            longitud: -55.9229935,
+            latitud: -31.866474,
+            longitud:  -54.164682,
             estado: 'PUBLICADO',
             categoria: 'Restaurantes',
             imagen: 'galpon.webp'
@@ -277,7 +365,7 @@ async function main() {
             longitud: -53.2602200,
             estado: 'PUBLICADO',
             categoria: 'Alojamiento',
-            imagen: 'Hotel LM.jpg'
+            imagen: '10.png'
         },
         {
             nombre: 'Casa Juana de Ibarbourou',
@@ -367,11 +455,21 @@ async function main() {
 
     ];
 
+    ubicaciones.push(...ubicacionesLocalidades);
+    validarCoberturaLocalidades(localidades, ubicaciones);
+
     // ========================================
     // VALIDAR IMÁGENES
     // ========================================
 
     const imagenDF = await buscarImagenDF();
+
+    // Las fotos complementarias pueden agregarse después sin bloquear el seed.
+    const archivosAuto = new Set(await readdir(carpetaAuto));
+    const imagenesComplementarias = ubicacionesLocalidades.map((u) => u.imagen).filter(Boolean);
+    for (const imagen of imagenesComplementarias) {
+        if (!archivosAuto.has(imagen)) console.warn(`Foto pendiente (se omite): ${imagen}`);
+    }
 
     const imagenes = [
         '1.png',
@@ -381,7 +479,7 @@ async function main() {
         imagenDF,
         'rueda.jpg',
         'galpon.webp',
-        'Hotel LM.jpg',
+        '10.png',
         'Juana.jpg',
         'tupambae.jpg',
         'JMuniz.jpg',
@@ -389,7 +487,8 @@ async function main() {
         'ibarbourou.jpg',
         'rivera.jpg',
         'PlayaFM.jpg',
-        'bioparque.jpg'
+        'bioparque.jpg',
+        ...imagenesComplementarias.filter((imagen) => archivosAuto.has(imagen))
     ];
 
     for (const imagen of imagenes) {
@@ -432,6 +531,15 @@ async function main() {
     }
 
     console.log('Categorías cargadas');
+
+    for (const [slug, nombre] of localidades) {
+        await prisma.localidad.upsert({
+            where: { slug },
+            update: {},
+            create: { slug, nombre }
+        });
+    }
+    console.log('Localidades del mapa verificadas');
 
     // ========================================
     // CREAR USUARIOS
@@ -603,11 +711,13 @@ async function main() {
 
         const {
             categoria: _nombreCategoria,
+            creditoImagen,
             imagen,
             ...datosUbicacion
         } = ubicacion;
 
-        const nombreImagen = imagen === 'DF' ? imagenDF : imagen;
+        const candidataImagen = imagen === 'DF' ? imagenDF : imagen;
+        const nombreImagen = candidataImagen && archivosAuto.has(candidataImagen) ? candidataImagen : null;
 
         // ========================================
         // VERIFICAR SI YA EXISTE LA UBICACIÓN
@@ -671,7 +781,7 @@ async function main() {
                     data: {
                         uri,
                         tipo: 'IMAGEN',
-                        descripcion: `Imagen de ${ubicacionDB.nombre}`,
+                        descripcion: creditoImagen ?? `Imagen de ${ubicacionDB.nombre}`,
                         orden: 0,
                         id_ubicacion: ubicacionDB.id
                     }
@@ -691,6 +801,8 @@ async function main() {
     // ========================================
     // FINALIZACIÓN
     // ========================================
+
+    await cargarHorariosUrubus();
 
     console.log('Carga inicial finalizada correctamente');
 }

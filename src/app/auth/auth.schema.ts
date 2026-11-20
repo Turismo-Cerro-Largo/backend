@@ -1,4 +1,5 @@
 import { z } from "zod";
+export const VERSION_DOCUMENTOS_ORGANIZADOR = "2026-10-28-v1";
 
 const emailRegex =
 	/^[a-zA-Z0-9._%+-]+@(gmail\.com|tuta\.com|tutanota\.com|hotmail\.com|outlook\.com|live\.com|proton\.me|protonmail\.com|yahoo\.com|icloud\.com)$/;
@@ -44,14 +45,14 @@ const fechaNacimientoSchema = z
 	});
 
 export const auth_usuario_login_scheem = z.object({
-	email: z.string().min(7).max(45).email().regex(emailRegex),
-	password: z.string().min(8).max(32).regex(passwordRegex),
+	email: z.string().trim().toLowerCase().email().max(254),
+	password: z.string().min(1).max(1024),
 });
 
 export const auth_usuario_register_scheem = z.object({
 	nombres: z.string().min(2).max(60).regex(nombreRegex),
 	apellidos: z.string().min(2).max(60).regex(nombreRegex),
-	email: z.string().min(7).max(45).email().regex(emailRegex),
+	email: z.string().trim().toLowerCase().min(7).max(45).email().regex(emailRegex),
 	departamento: z.enum(departamentos),
 	fecha_nacimiento: fechaNacimientoSchema,
 	genero: z.enum(["masculino", "femenino", "otro"]),
@@ -60,14 +61,26 @@ export const auth_usuario_register_scheem = z.object({
 
 export const auth_organizador_register_scheem = z.object({
 	nombreOrganizacion: z.string().min(2).max(100).regex(organizacionRegex),
-	rut: z.string().length(12).regex(rutRegex),
+	rut: z.preprocess(
+		(valor) => (typeof valor === "string" ? valor.trim() || null : valor),
+		z
+			.string()
+			.length(12)
+			.regex(rutRegex)
+			.nullish()
+			.transform((valor) => valor ?? null),
+	),
 	departamento: z.enum(departamentos),
-	email: z.string().min(7).max(45).email().regex(emailRegex),
+	email: z.string().trim().toLowerCase().min(7).max(45).email().regex(emailRegex),
 	telefono: z.string().min(8).max(20).regex(telefonoRegex),
 	password: z.string().min(8).max(32).regex(passwordRegex),
 
 	fotoCedulaFrente: z.any(),
 	fotoCedulaDorso: z.any(),
+
+	aceptaTerminos: z.literal("si"),
+	aceptaPrivacidad: z.literal("si"),
+	versionDocumentos: z.literal(VERSION_DOCUMENTOS_ORGANIZADOR),
 });
 
 export type auth_usuario_login_infer = z.infer<typeof auth_usuario_login_scheem>;

@@ -14,6 +14,8 @@ export const env = z
 
 		// Security
 		COOKIE_SECRET: z.string().min(32),
+		TURNSTILE_SECRET_KEY: z.string().trim().optional(),
+		TURNSTILE_HOSTNAME: z.string().trim().optional(),
 
 		// Google
 		GOOGLE_ID: z.string().optional(),
@@ -21,8 +23,6 @@ export const env = z
 		GOOGLE_REDIRECT_FRONTEND: z.string().optional(),
 
 		// Environment
-		NODE_ENV: z
-			.enum(["development", "production", "test"])
-			.default("development"),
+		NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 	})
 	.parse(process.env);
